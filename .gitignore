@@ -1,0 +1,43 @@
+# Cheatsheet files
+cheatsheet.txt
+
+# ---------- API files ----------
+/api/.env
+
+# ---------- Mobile files ----------
+
+# dependencies
+/mobile/node_modules/
+
+# Expo
+/mobile/.expo/
+/mobile/dist/
+web-build/
+expo-env.d.ts
+
+# Native
+/mobile/.kotlin/
+/mobile/*.orig.*
+/mobile/*.jks
+/mobile/*.p8
+/mobile/*.p12
+/mobile/*.key
+/mobile/*.mobileprovision
+
+# Metro
+/mobile/.metro-health-check*
+
+# debug
+/mobile/npm-debug.*
+/mobile/yarn-debug.*
+/mobile/yarn-error.*
+
+# macOS
+/mobile/.DS_Store
+/mobile/*.pem
+
+# local env files
+/mobile/.env*.local
+
+# typescript
+/mobile/*.tsbuildinfo

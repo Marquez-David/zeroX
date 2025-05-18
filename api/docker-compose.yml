@@ -3,9 +3,9 @@ services:
     image: zerox-api:latest
     build: ./
     ports:
-      - "5000:5000"
+      - '5000:5000'
     volumes:
-      - .:/app
+      - .:/api
     env_file:
       - ./.env
     restart: always

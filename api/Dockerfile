@@ -1,14 +1,14 @@
 FROM python:alpine
 
-WORKDIR /app
+WORKDIR /api/api
 
 ENV PYTHONDONTWRITEBYTECODE=1
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY api/ .
 
 EXPOSE 5000
 
-CMD ["python", "./api/app.py"]
+CMD ["python", "app.py"]
