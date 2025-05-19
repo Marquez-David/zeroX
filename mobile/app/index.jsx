@@ -1,8 +1,10 @@
-import { Text } from "react-native";
+import { Text } from 'react-native';
+
+import LoginScreen from './screens/LoginScreen';
 const Home = () => {
   return (
     <>
-      <Text>zerox index</Text>
+      <LoginScreen />
     </>
   );
 };

@@ -41,3 +41,5 @@ expo-env.d.ts
 
 # typescript
 /mobile/*.tsbuildinfo
+
+/mobile/expo-env.d.ts
