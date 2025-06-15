@@ -1,25 +1,34 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput } from 'react-native';
 
-import EyeButton from '@app/components/CustomButtons/EyeButton';
+import EyeButton from '@components/CustomButtons/EyeButton';
 
 import styles from './styles';
+
+type StandardInputProps = {
+  value: string;
+  label: string;
+  isPassword: boolean;
+  validation: { touched: boolean | undefined; error: string | undefined };
+  onChange: (text: string) => void;
+  onBlur: (e: any) => void;
+};
 
 const StandardInput = ({
   value,
   label,
-  type,
+  isPassword,
   validation,
   onChange,
   onBlur,
-}) => {
-  const [secureEntry, setSecureEntry] = useState(type === 'password');
+}: StandardInputProps) => {
+  const [secureEntry, setSecureEntry] = useState(isPassword);
   return (
     <View style={styles.view}>
       <Text style={styles.label}>{label}</Text>
       <View style={styles.filedContainer}>
         <EyeButton
-          display={type === 'password' && value !== ''}
+          display={isPassword && value !== ''}
           active={secureEntry}
           button={{ style: styles.icon }}
           onPress={() => {
@@ -28,7 +37,6 @@ const StandardInput = ({
         />
         <TextInput
           style={styles.field}
-          keyboardType={type}
           secureTextEntry={secureEntry}
           value={value}
           onChangeText={onChange}
