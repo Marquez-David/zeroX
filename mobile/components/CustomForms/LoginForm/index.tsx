@@ -1,26 +1,30 @@
 import React from 'react';
 import { Formik } from 'formik';
 
-import { loginStrings } from '@app/utils/strings';
+import { loginStrings } from '@lib/strings';
 
-import StandardInput from '@app/components/CustomInputs/StandardInput';
-import StandardButton from '@app/components/CustomButtons/StandardButton';
+import StandardInput from '@components/CustomInputs/StandardInput';
+import StandardButton from '@components/CustomButtons/StandardButton';
 
-import { validateEmail, validatePassword } from '@app/utils/utils';
+import { validateEmail, validatePassword } from '@lib/utils';
 
 import styles from './styles';
 
-const LoginForm = () => {
+type LoginFormProps = {
+  onSubmit: () => void;
+};
+
+const LoginForm = ({ onSubmit }: LoginFormProps) => {
   return (
     <Formik
       initialValues={{ email: '', password: '' }}
-      onSubmit={(values) => console.log(values)}
-      validate={(values) => {
-        const errors: { email?: string; password?: string } = {};
-        errors.email = validateEmail(values.email);
-        errors.password = validatePassword(values.password);
-        return errors;
-      }}
+      onSubmit={(values) => onSubmit()}
+      // validate={(values) => {
+      //   const errors: { email?: string; password?: string } = {};
+      //   errors.email = validateEmail(values.email);
+      //   errors.password = validatePassword(values.password);
+      //   return errors;
+      // }}
     >
       {({
         handleChange,
@@ -34,7 +38,7 @@ const LoginForm = () => {
           <StandardInput
             value={values.email}
             label={loginStrings.email}
-            type={'email-address'}
+            isPassword={false}
             validation={{ touched: touched.email, error: errors.email }}
             onChange={handleChange('email')}
             onBlur={handleBlur('email')}
@@ -42,14 +46,14 @@ const LoginForm = () => {
           <StandardInput
             value={values.password}
             label={loginStrings.password}
-            type={'password'}
+            isPassword={true}
             validation={{ touched: touched.password, error: errors.password }}
             onChange={handleChange('password')}
             onBlur={handleBlur('password')}
           />
           <StandardButton
-            button={{ style: styles.submitButton }}
-            title={{ text: loginStrings.emailSignUp, style: styles.titleText }}
+            button={{ logo: null, style: styles.submitButton }}
+            label={{ text: loginStrings.emailSignUp, style: styles.titleText }}
             onPress={handleSubmit}
           />
         </>
