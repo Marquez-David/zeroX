@@ -1,12 +1,17 @@
 import typing
 import config
 import flask # type: ignore
-import flask_sqlalchemy # type: ignore
+import redis # type: ignore
 
+import flask_login # type: ignore
+import flask_session # type: ignore
+import flask_sqlalchemy # type: ignore
 
 from flask_sqlalchemy import model #type: ignore
 from sqlalchemy.orm import exc as sql_orm_exc  # type: ignore
 from sqlalchemy import create_engine # type: ignore
+
+from app.routes.users import BP as users_bp
 
 class BaseModel(model.Model):
 
@@ -24,6 +29,8 @@ class BaseModel(model.Model):
         return f"<{self.__class__.__name__}({', '.join(field_strings)})>"
     
 DB = flask_sqlalchemy.SQLAlchemy(model_class=BaseModel) # type: ignore
+
+LOGIN_MANAGER = flask_login.LoginManager()
 
 def connect_datatabase() -> flask_sqlalchemy.SQLAlchemy:
     """
@@ -68,13 +75,81 @@ def initialize_database(app: flask.Flask) -> None:
                     
     return None
 
+def initialize_app(app: flask.Flask) -> None:
+    """
+    Initialize the Flask application with necessary configurations.
+
+    Args:
+        app (flask.Flask): The Flask application instance.
+
+    Returns:
+        None
+    """
+    session = flask_session.Session()
+    session.init_app(app)
+
+    LOGIN_MANAGER.init_app(app)
+    # LOGIN_MANAGER.login_view = "users.login"
+    # LOGIN_MANAGER.login_message = ""
+
+    # Initialize CSRF protection
+    # app_csrf = csrf.CSRFProtect()
+    # app_csrf.init_app(app)
+
+    return None
+
+def initialize_routes(app: flask.Flask) -> None:
+    """
+    Initialize the routes for the Flask application.
+
+    Args:
+        app (flask.Flask): The Flask application instance.
+
+    Returns:
+        None
+    """
+    routes = [users_bp]
+    for resource in routes:
+        app.register_blueprint(resource)
+
+    return None
+
+def initialize_redis(app: flask.Flask) -> None:
+    """
+    Initialize the Redis connection.
+
+    Args:
+        app (flask.Flask): The Flask application instance.
+
+    Returns:
+        None
+    """
+    redis_client = redis.Redis(
+        host=config.REDIS_HOST,
+        port=config.REDIS_PORT,
+        password=config.REDIS_PASSWORD,
+        decode_responses=True
+    )
+    app.config['SESSION_REDIS'] = redis_client
+
+    return None
+
+
 def create_app(config_class=config.config) -> flask.Flask:
     app = flask.Flask(__name__)
     app.config.from_object(config_class)
 
     DB.init_app(app)
 
+    # Initialize app
+    initialize_app(app)
+    initialize_routes(app)
+
+    # Initialize database
     initialize_database(app)
+
+    # Initialize Redis
+    initialize_redis(app)
 
     return app
 
