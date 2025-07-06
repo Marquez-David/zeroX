@@ -1,44 +1,27 @@
-import typing
 import config
-import flask # type: ignore
-import redis # type: ignore
+import flask  # type: ignore
+import redis  # type: ignore
 
-import flask_login # type: ignore
-import flask_session # type: ignore
-import flask_sqlalchemy # type: ignore
+import flask_login  # type: ignore
+import flask_session  # type: ignore
+import flask_sqlalchemy  # type: ignore
 
-from flask_sqlalchemy import model #type: ignore
-from sqlalchemy.orm import exc as sql_orm_exc  # type: ignore
-from sqlalchemy import create_engine # type: ignore
+from sqlalchemy.orm import exc as sql_orm_exc
+from sqlalchemy import create_engine
+from app.db import DB
 
-from app.routes.users import BP as users_bp
-
-class BaseModel(model.Model):
-
-    def __repr__(self) -> str:
-        return self._repr(id=self.id)
-    
-    def _repr(self, **fields: typing.Dict[str, typing.Any]) -> str:
-        """Return a string representation of the model."""
-        field_strings = []
-        for key, value in fields.items():
-            try:
-                field_strings.append(f"{key}={value}")
-            except sql_orm_exc.DetachedInstanceError:
-                field_strings.append(f"{key}=DetachedInstanceError")
-        return f"<{self.__class__.__name__}({', '.join(field_strings)})>"
-    
-DB = flask_sqlalchemy.SQLAlchemy(model_class=BaseModel) # type: ignore
+from app.routes import all_bps
 
 LOGIN_MANAGER = flask_login.LoginManager()
+
 
 def connect_datatabase() -> flask_sqlalchemy.SQLAlchemy:
     """
     Connect to the database and return the connection object.
-    
+
     Returns:
         flask_sqlalchemy.SQLAlchemy: The SQLAlchemy engine object.
-        
+
     Raises:
         sql_orm_exc.OperationalError: If the database connection fails.
     """
@@ -53,13 +36,14 @@ def connect_datatabase() -> flask_sqlalchemy.SQLAlchemy:
 
     return engine
 
+
 def initialize_database(app: flask.Flask) -> None:
     """
     Initialize the database and create tables
-    
+
     Args:
         app (flask.Flask): The Flask application instance.
-        
+
     Raises:
         sql_orm_exc.OperationalError: If the database connection fails.
     """
@@ -71,9 +55,10 @@ def initialize_database(app: flask.Flask) -> None:
                 DB.metadata.create_all(engine, checkfirst=True)
                 break
             except sql_orm_exc.OperationalError:
-                raise sql_orm_exc.OperationalError("Database initialization failed")        
-                    
+                raise sql_orm_exc.OperationalError("Database initialization failed")
+
     return None
+
 
 def initialize_app(app: flask.Flask) -> None:
     """
@@ -89,14 +74,9 @@ def initialize_app(app: flask.Flask) -> None:
     session.init_app(app)
 
     LOGIN_MANAGER.init_app(app)
-    # LOGIN_MANAGER.login_view = "users.login"
-    # LOGIN_MANAGER.login_message = ""
-
-    # Initialize CSRF protection
-    # app_csrf = csrf.CSRFProtect()
-    # app_csrf.init_app(app)
 
     return None
+
 
 def initialize_routes(app: flask.Flask) -> None:
     """
@@ -108,11 +88,11 @@ def initialize_routes(app: flask.Flask) -> None:
     Returns:
         None
     """
-    routes = [users_bp]
-    for resource in routes:
-        app.register_blueprint(resource)
+    for bp in all_bps:
+        app.register_blueprint(bp)
 
     return None
+
 
 def initialize_redis(app: flask.Flask) -> None:
     """
@@ -128,9 +108,9 @@ def initialize_redis(app: flask.Flask) -> None:
         host=config.REDIS_HOST,
         port=config.REDIS_PORT,
         password=config.REDIS_PASSWORD,
-        decode_responses=True
+        decode_responses=True,
     )
-    app.config['SESSION_REDIS'] = redis_client
+    app.config["SESSION_REDIS"] = redis_client
 
     return None
 
@@ -152,7 +132,3 @@ def create_app(config_class=config.config) -> flask.Flask:
     initialize_redis(app)
 
     return app
-
-
-
-            
