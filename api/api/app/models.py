@@ -1,9 +1,11 @@
+import typing
 import uuid as uuid_gen
-from app.db import DB
-from datetime import datetime, timezone
 
 from flask_login import mixins  # type: ignore
 from sqlalchemy.dialects import postgresql
+from datetime import datetime, timezone
+
+from app.db import DB
 
 
 class User(mixins.UserMixin, DB.Model):
@@ -15,6 +17,8 @@ class User(mixins.UserMixin, DB.Model):
         uuid (uuid.UUID): The UUID of the user.
         username (str): The username of the user.
         email (str): The email address of the user.
+        password_hash (str): The hashed password of the user.
+        locked (bool): Indicates if the user account is locked.
         categories (list[Category]): The categories associated with the user.
     """
 
@@ -26,8 +30,10 @@ class User(mixins.UserMixin, DB.Model):
         nullable=False,
         default=uuid_gen.uuid4,
     )
-    username: str = DB.Column(DB.String(64), index=True, unique=True, nullable=False)
+    username: str = DB.Column(DB.String(64), index=True, unique=False, nullable=False)
     email: str = DB.Column(DB.String(128), index=True, unique=True, nullable=False)
+    password_hash: typing.Optional[str] = DB.Column(DB.String(128), nullable=True)
+    locked: bool = DB.Column(DB.Boolean, default=False, nullable=False)
     categories = DB.relationship("Category", back_populates="user")
     reports = DB.relationship("Report", back_populates="user")
 
@@ -68,6 +74,7 @@ class Report(DB.Model):
         date (datetime): The date of the report.
         balance (float): The balance of the report.
         url_file (str): The URL of the file associated with the report.
+        iban (str): The IBAN associated with the report.
         user_id (int): The ID of the user associated with the report.
     """
 
@@ -82,21 +89,29 @@ class Report(DB.Model):
     date: datetime = DB.Column(DB.DateTime, nullable=False)
     balance: float = DB.Column(DB.Float, nullable=False)
     url_file: str = DB.Column(DB.String(128), nullable=False, unique=True)
+    iban: typing.Optional[str] = DB.Column(DB.String(34), nullable=True, unique=False)
     user_id: int = DB.Column(DB.Integer, DB.ForeignKey("users.id"), nullable=False)
     user = DB.relationship("User", back_populates="reports")
     operations = DB.relationship("Operation", back_populates="report")
 
-    def __init__(self, balance: float, url_file: str) -> None:
+    def __init__(
+        self,
+        balance: float,
+        url_file: str,
+        iban: typing.Optional[str] = None,
+    ) -> None:
         """
         Initialize a Report instance.
 
         Args:
             balance (float): The balance of the report.
             url_file (str): The URL of the file associated with the report.
+            iban (Optional[str]): The IBAN associated with the report.
         """
         self.date = datetime.now(timezone.utc)
         self.balance = balance
         self.url_file = url_file
+        self.iban = iban
 
     def __repr__(self) -> str:
         """
@@ -111,6 +126,7 @@ class Report(DB.Model):
             date=self.date,
             balance=self.balance,
             url_file=self.url_file,
+            iban=self.iban,
             user=self.user,
         )
 

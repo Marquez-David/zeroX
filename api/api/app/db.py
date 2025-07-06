@@ -2,7 +2,8 @@ import typing
 import flask_sqlalchemy  # type: ignore
 
 from flask_sqlalchemy import model  # type: ignore
-from sqlalchemy import exc as sql_orm_exc  # type: ignore
+from sqlalchemy import exc as sql_orm_exc
+from flask_migrate import Migrate  # type: ignore
 
 
 class BaseModel(model.Model):
@@ -22,4 +23,5 @@ class BaseModel(model.Model):
         return f"<{self.__class__.__name__}({', '.join(field_strings)})>"
 
 
-DB = flask_sqlalchemy.SQLAlchemy(model_class=BaseModel)  # type: ignore
+DB = flask_sqlalchemy.SQLAlchemy(model_class=BaseModel)
+migrate = Migrate(compare_type=True)
