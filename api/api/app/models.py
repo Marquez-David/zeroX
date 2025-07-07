@@ -1,5 +1,10 @@
+import os
 import typing
 import uuid as uuid_gen
+import config
+import hmac
+
+from argon2 import PasswordHasher  # type: ignore
 
 from flask_login import mixins  # type: ignore
 from sqlalchemy.dialects import postgresql
@@ -37,16 +42,18 @@ class User(mixins.UserMixin, DB.Model):
     categories = DB.relationship("Category", back_populates="user")
     reports = DB.relationship("Report", back_populates="user")
 
-    def __init__(self, username: str, email: str) -> None:
+    def __init__(self, email: str, password: typing.Optional[str] = None) -> None:
         """
         Initialize a User instance.
 
         Args:
-            username (str): The username of the user.
             email (str): The email address of the user.
+            password_hash (Optional[str]): The password hash of the user.
         """
-        self.username = username
+        self.username = email.split("@")[0]
         self.email = email
+        if password is not None:
+            self.password_hash = self.hash_password(password)
 
     def __repr__(self) -> str:
         """
@@ -60,8 +67,59 @@ class User(mixins.UserMixin, DB.Model):
             uuid=self.uuid,
             username=self.username,
             email=self.email,
+            locked=self.locked,
             categories=[category.name for category in self.categories],
         )
+
+    def hash_password(self, password: str) -> str:
+        """
+        Hash the password using Argon2 with a pepper for added security.
+
+        Args:
+            password (str): The password to hash.
+
+        Returns:
+            str: The hashed password.
+        """
+        ph = PasswordHasher()
+        pepper = config.config.PEPPER
+
+        # Use HMAC to pre-hash the password with the pepper for added security
+        hmac_password = hmac.digest(
+            key=pepper.encode(), msg=password.encode(), digest="SHA256"
+        )
+
+        return ph.hash(hmac_password)
+
+    def check_password(self, password: str) -> bool:
+        """
+        Check if the provided password matches the stored password hash.
+
+        Args:
+            password (str): The password to check.
+
+        Returns:
+            bool: True if the password matches, False otherwise.
+        """
+        ph = PasswordHasher()
+        pepper = config.config.PEPPER
+
+        # Use HMAC to pre-hash the password with the pepper for added security
+        hmac_password = hmac.digest(
+            key=pepper.encode(), msg=password.encode(), digest="SHA256"
+        )
+
+        try:
+            ph.verify(self.password_hash, hmac_password)
+        except Exception:
+            # If the password does not match, return False
+            return False
+
+        if ph.check_needs_rehash(self.password_hash):
+            # If the password needs rehashing, rehash it
+            self.password_hash = self.hash_password(password)
+
+        return True
 
 
 class Report(DB.Model):

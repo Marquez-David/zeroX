@@ -5,23 +5,14 @@ from http import HTTPStatus
 from pydantic import ValidationError  # type: ignore
 
 from app.schemas.users.register import RegisterSchema
+from app.schemas.users.login import LoginSchema
 
-from app.services.users import register_user
+from app.services.users import register_user, login
 from app.routes.users import BP
 
 
-@BP.route("/users", methods=["GET"])
-def get_users():
-    """
-    Endpoint to get a list of users.
-    """
-    # This is a placeholder implementation.
-    # Replace with actual logic to retrieve users.
-    return {"users": ["user1", "user2", "user3"]}, 200
-
-
-@BP.route("/register", methods=["POST"])
-def register():
+@BP.route("/user", methods=["POST"])
+def create_user():
     """Register a new user."""
     try:
         data = RegisterSchema(**request.form)
@@ -30,3 +21,15 @@ def register():
         return flask.make_response({"message": msg}, HTTPStatus.BAD_REQUEST)
 
     return register_user(data.email, data.password)
+
+
+@BP.route("/login", methods=["POST"])
+def login_user():
+    """Login a user."""
+    try:
+        data = LoginSchema(**request.form)
+    except ValidationError as e:
+        msg = str(e.errors()[0].get("ctx").get("error"))
+        return flask.make_response({"message": msg}, HTTPStatus.BAD_REQUEST)
+
+    return login(data.email, data.password)
