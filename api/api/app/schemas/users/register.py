@@ -2,7 +2,7 @@ import hashlib
 import requests  # type: ignore
 import re
 
-from pydantic import BaseModel, EmailStr, validator, constr  # type: ignore
+from pydantic import BaseModel, EmailStr, validator  # type: ignore
 
 
 class RegisterSchema(BaseModel):

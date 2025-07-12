@@ -1,1 +1,1 @@
-from .users import register_user, login
+from .users import register_user
