@@ -2,7 +2,7 @@ import hashlib
 import requests  # type: ignore
 import re
 
-from pydantic import BaseModel, EmailStr, validator  # type: ignore
+from pydantic import BaseModel, EmailStr, field_validator, model_validator  # type: ignore
 
 
 class RegisterSchema(BaseModel):
@@ -10,15 +10,16 @@ class RegisterSchema(BaseModel):
 
     email: EmailStr
     password: str
+    confirm_password: str
 
-    @validator("email", "password", pre=True)
+    @field_validator("email", "password", "confirm_password")
     def strip_whitespace(cls, value):
         """Strip leading and trailing whitespace from input strings before validation."""
         if isinstance(value, str):
             return value.strip()
         return value
 
-    @validator("password")
+    @field_validator("password")
     def check_strength(cls, value: str) -> str:
         """Validate password strength."""
         if len(value) < 14:
@@ -27,7 +28,7 @@ class RegisterSchema(BaseModel):
             raise ValueError("Password must not contain repetitive characters.")
         return value
 
-    @validator("password")
+    @field_validator("password")
     def check_pwned(cls, value: str) -> str:
         """Check if the password has been exposed in known data breaches."""
         try:
@@ -42,3 +43,10 @@ class RegisterSchema(BaseModel):
         except requests.RequestException:
             raise ValueError("Error checking password safety")
         return value
+
+    @model_validator(mode="after")
+    def check_passwords_match(self) -> "RegisterSchema":
+        """Check if passwords match"""
+        if self.password != self.confirm_password:
+            raise ValueError("Passwords do not match")
+        return self

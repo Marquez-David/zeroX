@@ -5,6 +5,8 @@ from http import HTTPStatus
 from app import models
 from app.db import DB
 
+from flask_jwt_extended import create_access_token, create_refresh_token  # type: ignore
+
 
 def login(email: str, password: str) -> flask.make_response:
     """
@@ -34,4 +36,11 @@ def login(email: str, password: str) -> flask.make_response:
             {"message": "Invalid username or password"}, HTTPStatus.UNAUTHORIZED
         )
 
-    return flask.make_response({"message": "OK"}, HTTPStatus.OK)
+    return flask.make_response(
+        {
+            "message": "OK",
+            "access_token": create_access_token(identity=user.uuid),
+            "refresh_token": create_refresh_token(identity=user.uuid),
+        },
+        HTTPStatus.OK,
+    )

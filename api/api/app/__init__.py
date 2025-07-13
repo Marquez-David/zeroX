@@ -2,7 +2,6 @@ import config
 import flask  # type: ignore
 import redis  # type: ignore
 
-import flask_login  # type: ignore
 import flask_session  # type: ignore
 import flask_sqlalchemy  # type: ignore
 
@@ -12,7 +11,7 @@ from app.db import DB, migrate
 
 from app.routes import all_bps
 
-LOGIN_MANAGER = flask_login.LoginManager()
+from flask_jwt_extended import JWTManager  # type: ignore
 
 
 def connect_datatabase() -> flask_sqlalchemy.SQLAlchemy:
@@ -37,29 +36,6 @@ def connect_datatabase() -> flask_sqlalchemy.SQLAlchemy:
     return engine
 
 
-# def initialize_database(app: flask.Flask) -> None:
-#     """
-#     Initialize the database and create tables
-
-#     Args:
-#         app (flask.Flask): The Flask application instance.
-
-#     Raises:
-#         sql_orm_exc.OperationalError: If the database connection fails.
-#     """
-#     engine = connect_datatabase()
-#     with app.app_context():
-#         retries = 10
-#         for _ in range(retries):
-#             try:
-#                 DB.metadata.create_all(engine, checkfirst=True)
-#                 break
-#             except sql_orm_exc.OperationalError:
-#                 raise sql_orm_exc.OperationalError("Database initialization failed")
-
-#     return None
-
-
 def initialize_app(app: flask.Flask) -> None:
     """
     Initialize the Flask application with necessary configurations.
@@ -73,7 +49,7 @@ def initialize_app(app: flask.Flask) -> None:
     session = flask_session.Session()
     session.init_app(app)
 
-    LOGIN_MANAGER.init_app(app)
+    JWTManager(app)
 
     return None
 

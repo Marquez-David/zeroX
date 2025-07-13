@@ -1,11 +1,12 @@
 import os
+from datetime import timedelta
 
-# Configuration for redis connection
+# Redis connection credentials
 REDIS_HOST = os.environ.get("REDIS_HOST", "redis")
 REDIS_PORT = os.environ.get("REDIS_PORT", 6379)
 REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD")
 
-# Configuration for the database connection
+# Database connection credentials
 DB_USER = os.environ.get("DB_USER")
 DB_PASSWORD = os.environ.get("DB_PASSWORD")
 DB_HOST = os.environ.get("DB_HOST")
@@ -13,12 +14,17 @@ DB_PORT = os.environ.get("DB_PORT")
 DB_NAME = os.environ.get("DB_NAME")
 DB_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?sslmode=require"
 
-# Configuration for password hashing
+# Password hashing credentials
 PEPPER = os.environ.get("PEPPER")
+
+# JWT credentials
+JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY")
+JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=15)
+JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
 
 
 class config:
-    """ " Configuration class for the Flask application."""
+    """Configuration class for the Flask application."""
 
     # Session configuration
     SESSION_TYPE = "redis"
@@ -32,4 +38,10 @@ class config:
     SQLALCHEMY_DATABASE_URI = DB_URL
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
+    # JWT configuration
+    JWT_SECRET_KEY = JWT_SECRET_KEY
+    JWT_ACCESS_TOKEN_EXPIRES = JWT_ACCESS_TOKEN_EXPIRES
+    JWT_REFRESH_TOKEN_EXPIRES = JWT_REFRESH_TOKEN_EXPIRES
+
+    # Secret keys configuration
     PEPPER = PEPPER

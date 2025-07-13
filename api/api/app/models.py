@@ -1,4 +1,3 @@
-import os
 import typing
 import uuid as uuid_gen
 import config
@@ -6,14 +5,13 @@ import hmac
 
 from argon2 import PasswordHasher  # type: ignore
 
-from flask_login import mixins  # type: ignore
 from sqlalchemy.dialects import postgresql
 from datetime import datetime, timezone
 
 from app.db import DB
 
 
-class User(mixins.UserMixin, DB.Model):
+class User(DB.Model):
     """
     SQL table to store user data.
 
