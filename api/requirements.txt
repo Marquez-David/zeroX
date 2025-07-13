@@ -1,8 +1,14 @@
 Flask==3.1.0
 Flask-Login==0.6.3
+Flask-Session==0.8.0
 Flask-SQLAlchemy==3.1.1
 SQLAlchemy==2.0.40
 requests==2.32.3
 flask-cors==5.0.1
 psycopg2-binary==2.9.10
 alembic==1.15.2
+redis==5.2.1
+email-validator==2.2.0
+pydantic==2.11.7
+Flask-Migrate==4.1.0
+argon2-cffi==25.1.0

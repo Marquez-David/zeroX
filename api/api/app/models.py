@@ -1,9 +1,17 @@
-import uuid as uuid_gen # type: ignore
-from app import DB
+import os
+import typing
+import uuid as uuid_gen
+import config
+import hmac
+
+from argon2 import PasswordHasher  # type: ignore
+
+from flask_login import mixins  # type: ignore
+from sqlalchemy.dialects import postgresql
 from datetime import datetime, timezone
 
-from flask_login import mixins # type: ignore
-from sqlalchemy.dialects import postgresql  # type: ignore
+from app.db import DB
+
 
 class User(mixins.UserMixin, DB.Model):
     """
@@ -14,31 +22,38 @@ class User(mixins.UserMixin, DB.Model):
         uuid (uuid.UUID): The UUID of the user.
         username (str): The username of the user.
         email (str): The email address of the user.
+        password_hash (str): The hashed password of the user.
+        locked (bool): Indicates if the user account is locked.
         categories (list[Category]): The categories associated with the user.
     """
-    __tablename__ = 'users'
+
+    __tablename__ = "users"
     id: int = DB.Column(DB.Integer, primary_key=True, nullable=False, unique=True)
     uuid: uuid_gen.UUID = DB.Column(
-        postgresql.UUID(as_uuid=True), 
+        postgresql.UUID(as_uuid=True),
         unique=True,
-        nullable=False, 
-        default=uuid_gen.uuid4
+        nullable=False,
+        default=uuid_gen.uuid4,
     )
-    username: str = DB.Column(DB.String(64), index=True, unique=True, nullable=False)
+    username: str = DB.Column(DB.String(64), index=True, unique=False, nullable=False)
     email: str = DB.Column(DB.String(128), index=True, unique=True, nullable=False)
-    categories = DB.relationship('Category', back_populates='user')
-    reports = DB.relationship('Report', back_populates='user')
+    password_hash: typing.Optional[str] = DB.Column(DB.String(128), nullable=True)
+    locked: bool = DB.Column(DB.Boolean, default=False, nullable=False)
+    categories = DB.relationship("Category", back_populates="user")
+    reports = DB.relationship("Report", back_populates="user")
 
-    def __init__(self, username: str, email: str) -> None:
+    def __init__(self, email: str, password: typing.Optional[str] = None) -> None:
         """
         Initialize a User instance.
 
         Args:
-            username (str): The username of the user.
             email (str): The email address of the user.
+            password_hash (Optional[str]): The password hash of the user.
         """
-        self.username = username
+        self.username = email.split("@")[0]
         self.email = email
+        if password is not None:
+            self.password_hash = self.hash_password(password)
 
     def __repr__(self) -> str:
         """
@@ -52,9 +67,61 @@ class User(mixins.UserMixin, DB.Model):
             uuid=self.uuid,
             username=self.username,
             email=self.email,
+            locked=self.locked,
             categories=[category.name for category in self.categories],
         )
-    
+
+    def hash_password(self, password: str) -> str:
+        """
+        Hash the password using Argon2 with a pepper for added security.
+
+        Args:
+            password (str): The password to hash.
+
+        Returns:
+            str: The hashed password.
+        """
+        ph = PasswordHasher()
+        pepper = config.config.PEPPER
+
+        # Use HMAC to pre-hash the password with the pepper for added security
+        hmac_password = hmac.digest(
+            key=pepper.encode(), msg=password.encode(), digest="SHA256"
+        )
+
+        return ph.hash(hmac_password)
+
+    def check_password(self, password: str) -> bool:
+        """
+        Check if the provided password matches the stored password hash.
+
+        Args:
+            password (str): The password to check.
+
+        Returns:
+            bool: True if the password matches, False otherwise.
+        """
+        ph = PasswordHasher()
+        pepper = config.config.PEPPER
+
+        # Use HMAC to pre-hash the password with the pepper for added security
+        hmac_password = hmac.digest(
+            key=pepper.encode(), msg=password.encode(), digest="SHA256"
+        )
+
+        try:
+            ph.verify(self.password_hash, hmac_password)
+        except Exception:
+            # If the password does not match, return False
+            return False
+
+        if ph.check_needs_rehash(self.password_hash):
+            # If the password needs rehashing, rehash it
+            self.password_hash = self.hash_password(password)
+
+        return True
+
+
 class Report(DB.Model):
     """
     SQL table to store report data.
@@ -65,34 +132,44 @@ class Report(DB.Model):
         date (datetime): The date of the report.
         balance (float): The balance of the report.
         url_file (str): The URL of the file associated with the report.
+        iban (str): The IBAN associated with the report.
         user_id (int): The ID of the user associated with the report.
     """
-    __tablename__ = 'reports'
+
+    __tablename__ = "reports"
     id: int = DB.Column(DB.Integer, primary_key=True, nullable=False, unique=True)
     uuid: uuid_gen.UUID = DB.Column(
-        postgresql.UUID(as_uuid=True), 
+        postgresql.UUID(as_uuid=True),
         unique=True,
-        nullable=False, 
-        default=uuid_gen.uuid4
+        nullable=False,
+        default=uuid_gen.uuid4,
     )
     date: datetime = DB.Column(DB.DateTime, nullable=False)
     balance: float = DB.Column(DB.Float, nullable=False)
     url_file: str = DB.Column(DB.String(128), nullable=False, unique=True)
-    user_id: int = DB.Column(DB.Integer, DB.ForeignKey('users.id'), nullable=False)
-    user = DB.relationship('User', back_populates='reports')
-    operations = DB.relationship('Operation', back_populates='report')
+    iban: typing.Optional[str] = DB.Column(DB.String(34), nullable=True, unique=False)
+    user_id: int = DB.Column(DB.Integer, DB.ForeignKey("users.id"), nullable=False)
+    user = DB.relationship("User", back_populates="reports")
+    operations = DB.relationship("Operation", back_populates="report")
 
-    def __init__(self, balance: float, url_file: str) -> None:
+    def __init__(
+        self,
+        balance: float,
+        url_file: str,
+        iban: typing.Optional[str] = None,
+    ) -> None:
         """
         Initialize a Report instance.
 
         Args:
             balance (float): The balance of the report.
             url_file (str): The URL of the file associated with the report.
+            iban (Optional[str]): The IBAN associated with the report.
         """
         self.date = datetime.now(timezone.utc)
         self.balance = balance
         self.url_file = url_file
+        self.iban = iban
 
     def __repr__(self) -> str:
         """
@@ -107,8 +184,10 @@ class Report(DB.Model):
             date=self.date,
             balance=self.balance,
             url_file=self.url_file,
-            user=self.user
+            iban=self.iban,
+            user=self.user,
         )
+
 
 class Operation(DB.Model):
     """
@@ -123,22 +202,24 @@ class Operation(DB.Model):
         category_id (int): The ID of the category associated with the operation.
         report_id (int): The ID of the report associated with the operation.
     """
-    __tablename__ = 'operations'
+
+    __tablename__ = "operations"
     id: int = DB.Column(DB.Integer, primary_key=True, nullable=False, unique=True)
     uuid: uuid_gen.UUID = DB.Column(
-        postgresql.UUID(as_uuid=True), 
+        postgresql.UUID(as_uuid=True),
         unique=True,
-        nullable=False, 
-        default=uuid_gen.uuid4
+        nullable=False,
+        default=uuid_gen.uuid4,
     )
     date: datetime = DB.Column(DB.DateTime, nullable=False)
     amount: float = DB.Column(DB.Float, nullable=False)
     concept: str = DB.Column(DB.String(128), nullable=True)
-    category_id: int = DB.Column(DB.Integer, DB.ForeignKey('categories.id'), nullable=False)
-    category = DB.relationship('Category', back_populates='operations')
-    report_id: int = DB.Column(DB.Integer, DB.ForeignKey('reports.id'), nullable=False)
-    report = DB.relationship('Report', back_populates='operations')
-    
+    category_id: int = DB.Column(
+        DB.Integer, DB.ForeignKey("categories.id"), nullable=False
+    )
+    category = DB.relationship("Category", back_populates="operations")
+    report_id: int = DB.Column(DB.Integer, DB.ForeignKey("reports.id"), nullable=False)
+    report = DB.relationship("Report", back_populates="operations")
 
     def __init__(self, amount: float, concept: str) -> None:
         """
@@ -166,8 +247,9 @@ class Operation(DB.Model):
             amount=self.amount,
             concept=self.concept,
             category=self.category.name,
-            report=self.report.url_file
+            report=self.report.url_file,
         )
+
 
 class Category(DB.Model):
     """
@@ -180,19 +262,20 @@ class Category(DB.Model):
         description (str): The description of the category.
         users (list[User]): The users associated with the category.
     """
-    __tablename__ = 'categories'
+
+    __tablename__ = "categories"
     id: int = DB.Column(DB.Integer, primary_key=True, nullable=False, unique=True)
     uuid: uuid_gen.UUID = DB.Column(
-        postgresql.UUID(as_uuid=True), 
+        postgresql.UUID(as_uuid=True),
         unique=True,
-        nullable=False, 
-        default=uuid_gen.uuid4
+        nullable=False,
+        default=uuid_gen.uuid4,
     )
     name: str = DB.Column(DB.String(64), unique=False, nullable=False)
     description: str = DB.Column(DB.String(128), unique=False, nullable=False)
-    user_id: int = DB.Column(DB.Integer, DB.ForeignKey('users.id'), nullable=False)
-    user = DB.relationship('User', back_populates='categories')
-    operations = DB.relationship('Operation', back_populates='category')
+    user_id: int = DB.Column(DB.Integer, DB.ForeignKey("users.id"), nullable=False)
+    user = DB.relationship("User", back_populates="categories")
+    operations = DB.relationship("Operation", back_populates="category")
 
     def __init__(self, name: str, description: str) -> None:
         """
@@ -217,5 +300,5 @@ class Category(DB.Model):
             uuid=self.uuid,
             name=self.name,
             description=self.description,
-            user=self.user.username
+            user=self.user.username,
         )
