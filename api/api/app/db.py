@@ -1,9 +1,13 @@
 import typing
 import flask_sqlalchemy  # type: ignore
+import redis  # type: ignore
+import config
 
 from flask_sqlalchemy import model  # type: ignore
 from sqlalchemy import exc as sql_orm_exc
 from flask_migrate import Migrate  # type: ignore
+
+from flask_jwt_extended import JWTManager  # type: ignore
 
 
 class BaseModel(model.Model):
@@ -23,5 +27,17 @@ class BaseModel(model.Model):
         return f"<{self.__class__.__name__}({', '.join(field_strings)})>"
 
 
+# Database connection and migration setup
 DB = flask_sqlalchemy.SQLAlchemy(model_class=BaseModel)
 migrate = Migrate(compare_type=True)
+
+# JWT configuration for token management
+jwt = JWTManager()
+
+jwt_redis_blocklist = redis.StrictRedis(
+    host=config.REDIS_HOST,
+    port=config.REDIS_PORT,
+    password=config.REDIS_PASSWORD,
+    decode_responses=True,
+    db=0,
+)

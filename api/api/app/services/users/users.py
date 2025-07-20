@@ -20,14 +20,10 @@ def register_user(email: str, password: str) -> flask.make_response:
     user = models.User.query.filter_by(email=email).first()
     if user:
         # Check if the user already exists
-        return flask.make_response(
-            {"message": "User already exist"}, HTTPStatus.CONFLICT
-        )
+        return flask.make_response({"msg": "User already exist"}, HTTPStatus.CONFLICT)
 
     user = models.User(email=email, password=password)
     DB.session.add(user)
     DB.session.commit()
 
-    return flask.make_response(
-        {"message": "User created successfully."}, HTTPStatus.CREATED
-    )
+    return flask.make_response({"msg": "User created successfully."}, HTTPStatus.OK)

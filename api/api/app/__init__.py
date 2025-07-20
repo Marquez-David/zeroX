@@ -1,17 +1,14 @@
 import config
 import flask  # type: ignore
-import redis  # type: ignore
 
 import flask_session  # type: ignore
 import flask_sqlalchemy  # type: ignore
 
 from sqlalchemy.orm import exc as sql_orm_exc
 from sqlalchemy import create_engine
-from app.db import DB, migrate
+from app.db import DB, migrate, jwt
 
 from app.routes import all_bps
-
-from flask_jwt_extended import JWTManager  # type: ignore
 
 
 def connect_datatabase() -> flask_sqlalchemy.SQLAlchemy:
@@ -49,7 +46,7 @@ def initialize_app(app: flask.Flask) -> None:
     session = flask_session.Session()
     session.init_app(app)
 
-    JWTManager(app)
+    jwt.init_app(app)
 
     return None
 
@@ -70,27 +67,6 @@ def initialize_routes(app: flask.Flask) -> None:
     return None
 
 
-def initialize_redis(app: flask.Flask) -> None:
-    """
-    Initialize the Redis connection.
-
-    Args:
-        app (flask.Flask): The Flask application instance.
-
-    Returns:
-        None
-    """
-    redis_client = redis.Redis(
-        host=config.REDIS_HOST,
-        port=config.REDIS_PORT,
-        password=config.REDIS_PASSWORD,
-        decode_responses=True,
-    )
-    app.config["SESSION_REDIS"] = redis_client
-
-    return None
-
-
 def create_app(config_class=config.config) -> flask.Flask:
     app = flask.Flask(__name__)
     app.config.from_object(config_class)
@@ -101,8 +77,5 @@ def create_app(config_class=config.config) -> flask.Flask:
     # Initialize app
     initialize_app(app)
     initialize_routes(app)
-
-    # Initialize Redis
-    initialize_redis(app)
 
     return app
