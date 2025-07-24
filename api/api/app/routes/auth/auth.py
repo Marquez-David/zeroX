@@ -27,7 +27,8 @@ def login_user():
 @jwt_required()
 def logout_user():
     """Logout a user."""
-    return logout()
+    refresh_token = request.get_json()["refresh_token"]
+    return logout(refresh_token)
 
 
 @BP.route("/refresh", methods=["POST"])

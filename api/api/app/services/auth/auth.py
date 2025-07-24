@@ -6,7 +6,7 @@ from flask import current_app  # type: ignore
 from app import models
 from app.db import jwt, jwt_redis_blocklist
 
-from flask_jwt_extended import get_jwt, get_jwt_identity, create_access_token, create_refresh_token  # type: ignore
+from flask_jwt_extended import get_jwt, get_jwt_identity, decode_token, create_access_token, create_refresh_token  # type: ignore
 
 
 def login(email: str, password: str) -> flask.make_response:
@@ -45,15 +45,55 @@ def login(email: str, password: str) -> flask.make_response:
     )
 
 
-def logout():
+def logout(refresh_token: str) -> flask.make_response:
     """
     Logout a user by revoking their JWT token and clearing the session.
+
+    Args:
+        refresh_token (str): The user's refresh token.
 
     Returns:
         flask.Response: A Flask response object with a JSON message and HTTP status code.
     """
-    jwt = get_jwt()["jti"]
-    jwt_redis_blocklist.set(jwt, "", ex=current_app.config["JWT_ACCESS_TOKEN_EXPIRES"])
+    if not refresh_token:
+        # Check if refresh token is provided
+        return flask.make_response(
+            {"msg": "Refresh token is required"}, HTTPStatus.BAD_REQUEST
+        )
+
+    try:
+        refresh_decoded = decode_token(refresh_token)
+    except Exception as e:
+        return flask.make_response({"msg": str(e)}, HTTPStatus.UNAUTHORIZED)
+
+    if refresh_decoded.get("type") != "refresh":
+        # Check if the token type is refresh
+        return flask.make_response(
+            {"msg": "Invalid token type"}, HTTPStatus.UNAUTHORIZED
+        )
+
+    user_uuid = get_jwt_identity()
+    user = models.User.query.filter_by(uuid=user_uuid).first()
+    if not user:
+        # Check if user exists
+        return flask.make_response({"msg": "User does not exist"}, HTTPStatus.NOT_FOUND)
+
+    if refresh_decoded["sub"] != user_uuid:
+        # Check if the token owner matches the user
+        return flask.make_response(
+            {"msg": "Token owner mismatch"}, HTTPStatus.UNAUTHORIZED
+        )
+
+    # Store the access token revoked in Redis with an expiration time
+    access_jti = get_jwt()["jti"]
+    access_token_expires = current_app.config["JWT_ACCESS_TOKEN_EXPIRES"]
+    jwt_redis_blocklist.set(access_jti, "access", ex=access_token_expires)
+
+    # Store the refresh token revoked in Redis with an expiration time
+    refresh_jti = refresh_decoded["jti"]
+    refresh_token_expires = current_app.config["JWT_REFRESH_TOKEN_EXPIRES"]
+    jwt_redis_blocklist.set(refresh_jti, "refresh", ex=refresh_token_expires)
+
     return flask.make_response({"msg": "OK"}, HTTPStatus.OK)
 
 
