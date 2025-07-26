@@ -112,10 +112,21 @@ def refresh():
     if user.locked:
         return flask.make_response({"msg": "User is locked"}, HTTPStatus.LOCKED)
 
+    try:
+        refresh_token = get_jwt()
+    except Exception as e:
+        return flask.make_response({"msg": str(e)}, HTTPStatus.UNAUTHORIZED)
+
+    # Store the access token revoked in Redis with an expiration time
+    refresh_jti = refresh_token["jti"]
+    refresh_token_expires = current_app.config["JWT_REFRESH_TOKEN_EXPIRES"]
+    jwt_redis_blocklist.set(refresh_jti, "access", ex=refresh_token_expires)
+
     return flask.make_response(
         {
             "msg": "OK",
             "access_token": create_access_token(identity=user.uuid, fresh=False),
+            "refresh_token": create_refresh_token(identity=user.uuid),
         },
         HTTPStatus.OK,
     )
