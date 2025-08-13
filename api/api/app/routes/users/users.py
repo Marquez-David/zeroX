@@ -16,6 +16,6 @@ def create_user():
         data = RegisterSchema(**request.form)
     except ValidationError as e:
         msg = str(e.errors()[0].get("ctx").get("error"))
-        return flask.make_response({"message": msg}, HTTPStatus.BAD_REQUEST)
+        return flask.make_response({"msg": msg}, HTTPStatus.BAD_REQUEST)
 
     return register_user(data.email, data.password)
