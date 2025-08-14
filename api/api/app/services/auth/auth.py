@@ -4,7 +4,8 @@ from http import HTTPStatus
 from flask import current_app  # type: ignore
 
 from app import models
-from app.db import jwt, jwt_redis_blocklist
+
+from app.jwt import jwt, jwt_redis_blocklist
 
 from flask_jwt_extended import get_jwt, get_jwt_identity, decode_token, create_access_token, create_refresh_token  # type: ignore
 
