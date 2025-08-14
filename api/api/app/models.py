@@ -21,8 +21,8 @@ class User(DB.Model):
         username (str): The username of the user.
         email (str): The email address of the user.
         password_hash (str): The hashed password of the user.
+        password_attempts (int): The number of password attempts made by the user.
         locked (bool): Indicates if the user account is locked.
-        categories (list[Category]): The categories associated with the user.
     """
 
     __tablename__ = "users"
@@ -36,8 +36,10 @@ class User(DB.Model):
     username: str = DB.Column(DB.String(64), index=True, unique=False, nullable=False)
     email: str = DB.Column(DB.String(128), index=True, unique=True, nullable=False)
     password_hash: typing.Optional[str] = DB.Column(DB.String(128), nullable=True)
+    password_attempts: int = DB.Column(
+        DB.Integer, default=0, nullable=True
+    )  # TODO: Make not nullable in next upgrade
     locked: bool = DB.Column(DB.Boolean, default=False, nullable=False)
-    categories = DB.relationship("Category", back_populates="user")
     reports = DB.relationship("Report", back_populates="user")
 
     def __init__(self, email: str, password: typing.Optional[str] = None) -> None:
@@ -47,6 +49,7 @@ class User(DB.Model):
         Args:
             email (str): The email address of the user.
             password_hash (Optional[str]): The password hash of the user.
+
         """
         self.username = email.split("@")[0]
         self.email = email
@@ -66,7 +69,6 @@ class User(DB.Model):
             username=self.username,
             email=self.email,
             locked=self.locked,
-            categories=[category.name for category in self.categories],
         )
 
     def hash_password(self, password: str) -> str:
@@ -129,7 +131,6 @@ class Report(DB.Model):
         uuid (uuid.UUID): The UUID of the report.
         date (datetime): The date of the report.
         balance (float): The balance of the report.
-        url_file (str): The URL of the file associated with the report.
         iban (str): The IBAN associated with the report.
         user_id (int): The ID of the user associated with the report.
     """
@@ -144,7 +145,6 @@ class Report(DB.Model):
     )
     date: datetime = DB.Column(DB.DateTime, nullable=False)
     balance: float = DB.Column(DB.Float, nullable=False)
-    url_file: str = DB.Column(DB.String(128), nullable=False, unique=True)
     iban: typing.Optional[str] = DB.Column(DB.String(34), nullable=True, unique=False)
     user_id: int = DB.Column(DB.Integer, DB.ForeignKey("users.id"), nullable=False)
     user = DB.relationship("User", back_populates="reports")
@@ -153,7 +153,6 @@ class Report(DB.Model):
     def __init__(
         self,
         balance: float,
-        url_file: str,
         iban: typing.Optional[str] = None,
     ) -> None:
         """
@@ -161,12 +160,10 @@ class Report(DB.Model):
 
         Args:
             balance (float): The balance of the report.
-            url_file (str): The URL of the file associated with the report.
             iban (Optional[str]): The IBAN associated with the report.
         """
         self.date = datetime.now(timezone.utc)
         self.balance = balance
-        self.url_file = url_file
         self.iban = iban
 
     def __repr__(self) -> str:
@@ -181,7 +178,6 @@ class Report(DB.Model):
             uuid=self.uuid,
             date=self.date,
             balance=self.balance,
-            url_file=self.url_file,
             iban=self.iban,
             user=self.user,
         )
@@ -258,7 +254,6 @@ class Category(DB.Model):
         uuid (uuid.UUID): The UUID of the category.
         name (str): The name of the category.
         description (str): The description of the category.
-        users (list[User]): The users associated with the category.
     """
 
     __tablename__ = "categories"
@@ -271,8 +266,6 @@ class Category(DB.Model):
     )
     name: str = DB.Column(DB.String(64), unique=False, nullable=False)
     description: str = DB.Column(DB.String(128), unique=False, nullable=False)
-    user_id: int = DB.Column(DB.Integer, DB.ForeignKey("users.id"), nullable=False)
-    user = DB.relationship("User", back_populates="categories")
     operations = DB.relationship("Operation", back_populates="category")
 
     def __init__(self, name: str, description: str) -> None:
@@ -298,5 +291,4 @@ class Category(DB.Model):
             uuid=self.uuid,
             name=self.name,
             description=self.description,
-            user=self.user.username,
         )
