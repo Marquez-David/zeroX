@@ -22,7 +22,7 @@ class User(DB.Model):
         email (str): The email address of the user.
         password_hash (str): The hashed password of the user.
         password_attempts (int): The number of password attempts made by the user.
-        locked (bool): Indicates if the user account is locked.
+        locked (datetime): Time until which the user is locked out.
     """
 
     __tablename__ = "users"
@@ -36,10 +36,10 @@ class User(DB.Model):
     username: str = DB.Column(DB.String(64), index=True, unique=False, nullable=False)
     email: str = DB.Column(DB.String(128), index=True, unique=True, nullable=False)
     password_hash: typing.Optional[str] = DB.Column(DB.String(128), nullable=True)
-    password_attempts: int = DB.Column(
-        DB.Integer, default=0, nullable=True
-    )  # TODO: Make not nullable in next upgrade
-    locked: bool = DB.Column(DB.Boolean, default=False, nullable=False)
+    password_attempts: int = DB.Column(DB.Integer, default=0, nullable=False)
+    locked: typing.Optional[datetime] = DB.Column(
+        DB.DateTime, nullable=True, default=None
+    )
     reports = DB.relationship("Report", back_populates="user")
 
     def __init__(self, email: str, password: typing.Optional[str] = None) -> None:
@@ -68,7 +68,6 @@ class User(DB.Model):
             uuid=self.uuid,
             username=self.username,
             email=self.email,
-            locked=self.locked,
         )
 
     def hash_password(self, password: str) -> str:
