@@ -51,6 +51,8 @@ def change_password(old_password: str, new_password: str) -> flask.make_response
         return flask.make_response({"msg": "Invalid password."}, HTTPStatus.BAD_REQUEST)
 
     current_user.password_hash = current_user.hash_password(new_password)
+    current_user.password_attempts = 0
+    current_user.locked = None
     DB.session.commit()
 
     return flask.make_response({"msg": "Password changed successfully."}, HTTPStatus.OK)
