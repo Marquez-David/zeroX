@@ -45,3 +45,6 @@ class config:
 
     # Secret keys configuration
     PEPPER = PEPPER
+
+    # Password attemps
+    MAX_PASSWORD_ATTEMPTS = 5

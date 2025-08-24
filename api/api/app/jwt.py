@@ -16,6 +16,12 @@ def user_lookup_callback(_jwt_header, jwt_data) -> models.User:
     return models.User.query.filter_by(uuid=uuid).first()
 
 
+@jwt.token_in_blocklist_loader
+def check_if_token_is_revoked(_jwt_header, jwt_payload: dict):
+    token_in_redis = jwt_redis_blocklist.get(jwt_payload["jti"])
+    return token_in_redis is not None
+
+
 jwt_redis_blocklist = redis.StrictRedis(
     host=config.REDIS_HOST,
     port=config.REDIS_PORT,
