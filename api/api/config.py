@@ -45,3 +45,7 @@ class config:
 
     # Secret keys configuration
     PEPPER = PEPPER
+
+    # Account lockout configuration
+    MAX_PASSWORD_ATTEMPTS = 5
+    LOCKOUT_TIME = timedelta(minutes=15)

@@ -6,7 +6,8 @@ import flask_sqlalchemy  # type: ignore
 
 from sqlalchemy.orm import exc as sql_orm_exc
 from sqlalchemy import create_engine
-from app.db import DB, migrate, jwt
+from app.db import DB, migrate
+from app.jwt import jwt
 
 from app.routes import all_bps
 
