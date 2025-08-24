@@ -38,7 +38,7 @@ class User(DB.Model):
     password_hash: typing.Optional[str] = DB.Column(DB.String(128), nullable=True)
     password_attempts: int = DB.Column(DB.Integer, default=0, nullable=False)
     locked: typing.Optional[datetime] = DB.Column(
-        DB.DateTime, nullable=True, default=None
+        DB.DateTime(timezone=True), nullable=True, default=None
     )
     reports = DB.relationship("Report", back_populates="user")
 
