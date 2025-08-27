@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from app import DB, models
 from app.jwt import jwt_redis_blocklist
 
-from flask_jwt_extended import get_jwt, get_jwt_identity, decode_token, create_access_token, create_refresh_token  # type: ignore
+from flask_jwt_extended import get_jwt, current_user, decode_token, create_access_token, create_refresh_token  # type: ignore
 
 
 def login(email: str, password: str) -> flask.make_response:
@@ -95,13 +95,12 @@ def logout(refresh_token: str) -> flask.make_response:
         # Check if token is not revoked
         return flask.make_response({"msg": "Token is revoked"}, HTTPStatus.UNAUTHORIZED)
 
-    user_uuid = get_jwt_identity()
-    user = models.User.query.filter_by(uuid=user_uuid).first()
+    user = models.User.query.filter_by(uuid=current_user.uuid).first()
     if not user:
         # Check if user exists
         return flask.make_response({"msg": "User does not exist"}, HTTPStatus.NOT_FOUND)
 
-    if refresh_decoded["sub"] != user_uuid:
+    if refresh_decoded["sub"] != str(current_user.uuid):
         # Check if the token owner matches the user
         return flask.make_response(
             {"msg": "Token owner mismatch"}, HTTPStatus.UNAUTHORIZED
@@ -140,8 +139,7 @@ def refresh():
             {"msg": "Refresh token revoked"}, HTTPStatus.UNAUTHORIZED
         )
 
-    user_uuid = get_jwt_identity()
-    user = models.User.query.filter_by(uuid=user_uuid).first()
+    user = models.User.query.filter_by(uuid=current_user.uuid).first()
     if not user:
         # Check if user exists
         return flask.make_response({"msg": "User does not exist"}, HTTPStatus.NOT_FOUND)
