@@ -40,7 +40,9 @@ class User(DB.Model):
     locked: typing.Optional[datetime] = DB.Column(
         DB.DateTime(timezone=True), nullable=True, default=None
     )
-    reports = DB.relationship("Report", back_populates="user")
+    reports = DB.relationship(
+        "Report", back_populates="user", cascade="all, delete-orphan"
+    )
 
     def __init__(self, email: str, password: typing.Optional[str] = None) -> None:
         """
@@ -145,9 +147,13 @@ class Report(DB.Model):
     date: datetime = DB.Column(DB.DateTime, nullable=False)
     balance: float = DB.Column(DB.Float, nullable=False)
     iban: typing.Optional[str] = DB.Column(DB.String(34), nullable=True, unique=False)
-    user_id: int = DB.Column(DB.Integer, DB.ForeignKey("users.id"), nullable=False)
+    user_id: int = DB.Column(
+        DB.Integer, DB.ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
     user = DB.relationship("User", back_populates="reports")
-    operations = DB.relationship("Operation", back_populates="report")
+    operations = DB.relationship(
+        "Operation", back_populates="report", cascade="all, delete-orphan"
+    )
 
     def __init__(
         self,
@@ -211,7 +217,9 @@ class Operation(DB.Model):
         DB.Integer, DB.ForeignKey("categories.id"), nullable=False
     )
     category = DB.relationship("Category", back_populates="operations")
-    report_id: int = DB.Column(DB.Integer, DB.ForeignKey("reports.id"), nullable=False)
+    report_id: int = DB.Column(
+        DB.Integer, DB.ForeignKey("reports.id", ondelete="CASCADE"), nullable=False
+    )
     report = DB.relationship("Report", back_populates="operations")
 
     def __init__(self, amount: float, concept: str) -> None:
