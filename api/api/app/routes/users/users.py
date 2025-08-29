@@ -5,7 +5,12 @@ from http import HTTPStatus
 from pydantic import ValidationError  # type: ignore
 
 from app.schemas.users import RegisterSchema, ChangePasswordSchema, ChangeUsernameSchema
-from app.services.users import register_user, change_password, change_username
+from app.services.users import (
+    register_user,
+    change_password,
+    change_username,
+    delete_user,
+)
 from app.routes.users import BP
 
 from flask_jwt_extended import jwt_required  # type: ignore
@@ -47,3 +52,11 @@ def update_username():
         return flask.make_response({"msg": msg}, HTTPStatus.BAD_REQUEST)
 
     return change_username(data.username)
+
+
+@BP.route("/user/delete-account", methods=["DELETE"])
+@jwt_required()
+def delete_account():
+    """Delete the account of an existing user."""
+    refresh_token = request.get_json()["refresh_token"]
+    return delete_user(refresh_token)

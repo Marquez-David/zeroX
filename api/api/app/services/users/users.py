@@ -2,7 +2,10 @@ import flask  # type: ignore
 
 from http import HTTPStatus
 
-from flask_jwt_extended import current_user  # type: ignore
+from flask import current_app  # type: ignore
+
+from app.jwt import jwt_redis_blocklist
+from flask_jwt_extended import get_jwt, decode_token, current_user  # type: ignore
 
 from app import models
 from app.db import DB
@@ -77,3 +80,64 @@ def change_username(username: str) -> flask.make_response:
     DB.session.commit()
 
     return flask.make_response({"msg": "Username changed successfully."}, HTTPStatus.OK)
+
+
+def delete_user(refresh_token: str) -> flask.make_response:
+    """
+    Delete the account of the current user.
+
+    Args:
+        refresh_token (str): The user's refresh token.
+
+    Returns:
+        flask.Response: A Flask response object with a JSON message and appropriate HTTP status code.
+    """
+
+    if not refresh_token:
+        # Check if refresh token is provided
+        return flask.make_response(
+            {"msg": "Refresh token is required"}, HTTPStatus.BAD_REQUEST
+        )
+
+    try:
+        refresh_decoded = decode_token(refresh_token, allow_expired=False)
+    except Exception as e:
+        return flask.make_response({"msg": str(e)}, HTTPStatus.UNAUTHORIZED)
+
+    if refresh_decoded.get("type") != "refresh":
+        # Check if the token type is refresh
+        return flask.make_response(
+            {"msg": "Invalid token type"}, HTTPStatus.UNAUTHORIZED
+        )
+
+    if jwt_redis_blocklist.get(refresh_decoded["jti"]):
+        # Check if token is not revoked
+        return flask.make_response({"msg": "Token is revoked"}, HTTPStatus.UNAUTHORIZED)
+
+    flask.current_app.logger.error(f"Current user UUID: {current_user.uuid}")
+    flask.current_app.logger.error(f"Refresh token subject: {refresh_decoded['sub']}")
+
+    if refresh_decoded["sub"] != str(current_user.uuid):
+        # Check if the token owner matches the user
+        return flask.make_response(
+            {"msg": "Token owner mismatch"}, HTTPStatus.UNAUTHORIZED
+        )
+
+    user = models.User.query.filter_by(uuid=current_user.uuid).first()
+    if not user:
+        return flask.make_response({"msg": "User not found."}, HTTPStatus.NOT_FOUND)
+
+    # Store the access token revoked in Redis with an expiration time
+    access_jti = get_jwt()["jti"]
+    access_token_expires = current_app.config["JWT_ACCESS_TOKEN_EXPIRES"]
+    jwt_redis_blocklist.set(access_jti, "access", ex=access_token_expires)
+
+    # Store the refresh token revoked in Redis with an expiration time
+    refresh_jti = refresh_decoded["jti"]
+    refresh_token_expires = current_app.config["JWT_REFRESH_TOKEN_EXPIRES"]
+    jwt_redis_blocklist.set(refresh_jti, "refresh", ex=refresh_token_expires)
+
+    DB.session.delete(user)
+    DB.session.commit()
+
+    return flask.make_response({"msg": "User deleted successfully."}, HTTPStatus.OK)
