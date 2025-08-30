@@ -11,6 +11,32 @@ from app import models
 from app.db import DB
 
 
+def retrieve_current_user() -> flask.make_response:
+    """
+    Retrieve current user information from the database.
+
+    Returns:
+        flask.Response: A Flask response object with a JSON message and appropriate HTTP status code.
+    """
+
+    user = models.User.query.filter_by(uuid=current_user.uuid).first()
+    if not user:
+        return flask.make_response({"msg": "Invalid user."}, HTTPStatus.NOT_FOUND)
+
+    return flask.make_response(
+        {
+            "msg": "OK",
+            "user": {
+                "uuid": user.uuid,
+                "email": user.email,
+                "username": user.username,
+                "created_at": user.created_at.isoformat(),
+            },
+        },
+        HTTPStatus.OK,
+    )
+
+
 def register_user(email: str, password: str) -> flask.make_response:
     """
     Register a new user with the given email and password.
@@ -82,7 +108,7 @@ def change_username(username: str) -> flask.make_response:
     return flask.make_response({"msg": "Username changed successfully."}, HTTPStatus.OK)
 
 
-def delete_user(refresh_token: str) -> flask.make_response:
+def delete_current_user(refresh_token: str) -> flask.make_response:
     """
     Delete the account of the current user.
 
@@ -113,9 +139,6 @@ def delete_user(refresh_token: str) -> flask.make_response:
     if jwt_redis_blocklist.get(refresh_decoded["jti"]):
         # Check if token is not revoked
         return flask.make_response({"msg": "Token is revoked"}, HTTPStatus.UNAUTHORIZED)
-
-    flask.current_app.logger.error(f"Current user UUID: {current_user.uuid}")
-    flask.current_app.logger.error(f"Refresh token subject: {refresh_decoded['sub']}")
 
     if refresh_decoded["sub"] != str(current_user.uuid):
         # Check if the token owner matches the user

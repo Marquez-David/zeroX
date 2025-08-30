@@ -119,7 +119,7 @@ def logout(refresh_token: str) -> flask.make_response:
     return flask.make_response({"msg": "OK"}, HTTPStatus.OK)
 
 
-def refresh():
+def refresh() -> flask.make_response:
     """
     Refresh the JWT token for the user.
 
@@ -144,7 +144,7 @@ def refresh():
         # Check if user exists
         return flask.make_response({"msg": "User does not exist"}, HTTPStatus.NOT_FOUND)
 
-    if user.locked > datetime.now(timezone.utc):
+    if user.locked and user.locked > datetime.now(timezone.utc):
         # Check if user is locked
         return flask.make_response({"msg": "User is locked"}, HTTPStatus.LOCKED)
 
