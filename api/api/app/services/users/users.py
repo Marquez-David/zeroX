@@ -21,6 +21,7 @@ def retrieve_current_user() -> flask.make_response:
 
     user = models.User.query.filter_by(uuid=current_user.uuid).first()
     if not user:
+        # Check if the user exists
         return flask.make_response({"msg": "Invalid user."}, HTTPStatus.NOT_FOUND)
 
     return flask.make_response(
@@ -72,11 +73,13 @@ def change_password(old_password: str, new_password: str) -> flask.make_response
         flask.Response: A Flask response object with a JSON message and appropriate HTTP status code.
     """
     if not old_password or not new_password:
+        # Check if both passwords are provided
         return flask.make_response(
             {"msg": "Password required."}, HTTPStatus.BAD_REQUEST
         )
 
     if not current_user.check_password(old_password):
+        # Check if the old password is correct
         return flask.make_response({"msg": "Invalid password."}, HTTPStatus.BAD_REQUEST)
 
     current_user.password_hash = current_user.hash_password(new_password)
@@ -98,6 +101,7 @@ def change_username(username: str) -> flask.make_response:
         flask.Response: A Flask response object with a JSON message and appropriate HTTP status code.
     """
     if not username:
+        # Check if username is provided
         return flask.make_response(
             {"msg": "Username required."}, HTTPStatus.BAD_REQUEST
         )

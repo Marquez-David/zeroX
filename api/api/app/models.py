@@ -248,7 +248,6 @@ class Operation(DB.Model):
             amount=self.amount,
             concept=self.concept,
             category=self.category.name,
-            report=self.report.url_file,
         )
 
 

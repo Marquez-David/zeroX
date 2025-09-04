@@ -44,7 +44,7 @@ def create_user() -> flask.make_response:
     return register_user(data.email, data.password)
 
 
-@BP.route("/users/me/password", methods=["PUT"])
+@BP.route("/users/me/password", methods=["PATCH"])
 @jwt_required()
 def update_password() -> flask.make_response:
     """Change the password of an existing user.
@@ -61,7 +61,7 @@ def update_password() -> flask.make_response:
     return change_password(data.old_password, data.new_password)
 
 
-@BP.route("/users/me/username", methods=["PUT"])
+@BP.route("/users/me/username", methods=["PATCH"])
 @jwt_required()
 def update_username() -> flask.make_response:
     """Change the username of an existing user.
@@ -86,5 +86,5 @@ def delete_user() -> flask.make_response:
     Returns:
         A Flask response object indicating the result of the account deletion.
     """
-    refresh_token = request.get_json()["refresh_token"]
+    refresh_token = request.json.get("refresh_token")
     return delete_current_user(refresh_token)

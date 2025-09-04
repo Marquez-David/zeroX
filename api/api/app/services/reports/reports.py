@@ -41,11 +41,9 @@ def retrieve_single_report(uuid: str) -> flask.make_response:
     Returns:
         A Flask response object containing a user's report.
     """
-    if not uuid:
-        return flask.make_response({"msg": "Report required."}, HTTPStatus.BAD_REQUEST)
-
     report = models.Report.query.filter_by(user_id=current_user.id, uuid=uuid).first()
     if not report:
+        # Check if the report exists for the user
         return flask.make_response({"msg": "Invalid report."}, HTTPStatus.NOT_FOUND)
 
     return flask.make_response(
@@ -85,11 +83,6 @@ def delete_report(uuid: str) -> flask.make_response:
     Returns:
         A Flask response object indicating the result of the deletion.
     """
-
-    if not uuid:
-        # Check if the report is provided
-        return flask.make_response({"msg": "Report required."}, HTTPStatus.BAD_REQUEST)
-
     report = models.Report.query.filter_by(user_id=current_user.id, uuid=uuid).first()
     if not report:
         # Check if the report exists for the user
