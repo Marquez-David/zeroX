@@ -132,7 +132,6 @@ class Report(DB.Model):
         uuid (uuid.UUID): The UUID of the report.
         date (datetime): The date of the report.
         balance (float): The balance of the report.
-        iban (str): The IBAN associated with the report.
         user_id (int): The ID of the user associated with the report.
     """
 
@@ -146,7 +145,6 @@ class Report(DB.Model):
     )
     date: datetime = DB.Column(DB.DateTime, nullable=False)
     balance: float = DB.Column(DB.Float, nullable=False)
-    iban: typing.Optional[str] = DB.Column(DB.String(34), nullable=True, unique=False)
     user_id: int = DB.Column(
         DB.Integer, DB.ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
@@ -155,21 +153,15 @@ class Report(DB.Model):
         "Operation", back_populates="report", cascade="all, delete-orphan"
     )
 
-    def __init__(
-        self,
-        balance: float,
-        iban: typing.Optional[str] = None,
-    ) -> None:
+    def __init__(self, balance: float) -> None:
         """
         Initialize a Report instance.
 
         Args:
             balance (float): The balance of the report.
-            iban (Optional[str]): The IBAN associated with the report.
         """
         self.date = datetime.now(timezone.utc)
         self.balance = balance
-        self.iban = iban
 
     def __repr__(self) -> str:
         """
@@ -183,7 +175,6 @@ class Report(DB.Model):
             uuid=self.uuid,
             date=self.date,
             balance=self.balance,
-            iban=self.iban,
             user=self.user,
         )
 
@@ -248,7 +239,6 @@ class Operation(DB.Model):
             amount=self.amount,
             concept=self.concept,
             category=self.category.name,
-            report=self.report.url_file,
         )
 
 
