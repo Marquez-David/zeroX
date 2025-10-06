@@ -8,6 +8,35 @@ from app import models
 from app.db import DB
 
 
+def retrieve_single_operation(uuid: str) -> flask.make_response:
+    """Retrieve a single operation by its UUID.
+
+    Args:
+        uuid (str): The UUID of the operation to retrieve.
+
+    Returns:
+        A Flask response object containing the operation details.
+    """
+    operation = models.Operation.query.filter_by(uuid=uuid).first()
+    if not operation or str(operation.report.user.uuid) != str(current_user.uuid):
+        # Check if the operation exists and belongs to the current user
+        return flask.make_response({"msg": "Invalid operation."}, HTTPStatus.NOT_FOUND)
+
+    return flask.make_response(
+        {
+            "msg": "OK",
+            "operation": {
+                "uuid": operation.uuid,
+                "amount": operation.amount,
+                "date": operation.date.isoformat(),
+                "description": operation.description,
+                "category": operation.category.name,
+            },
+        },
+        HTTPStatus.OK,
+    )
+
+
 def change_category(operation: str, category: str) -> flask.make_response:
     """Update the category of an operation.
 

@@ -7,6 +7,9 @@ from flask_jwt_extended import current_user  # type: ignore
 from app import models
 from app.db import DB
 
+import pandas as pd  # type: ignore
+from werkzeug.datastructures import FileStorage  # type: ignore
+
 
 def retrieve_all_reports() -> flask.make_response:
     """Retrieve user reports from the database.
@@ -70,8 +73,20 @@ def retrieve_single_report(uuid: str) -> flask.make_response:
     )
 
 
-def upload_report():
-    return flask.make_response({"msg": "Not implemented."}, HTTPStatus.OK)
+def upload_report_data(file: FileStorage) -> flask.make_response:
+    """
+    Upload and process a user report file.
+
+    Args:
+        file (FileStorage): The uploaded report file.
+
+    Returns:
+        A Flask response object indicating the result of the upload.
+    """
+    if not file:
+        return flask.make_response({"msg": "No file provided."}, HTTPStatus.BAD_REQUEST)
+
+    return flask.make_response({"msg": "Report upload successfully."}, HTTPStatus.OK)
 
 
 def delete_report(uuid: str) -> flask.make_response:

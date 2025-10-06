@@ -1,9 +1,10 @@
 import flask  # type: ignore
+from flask import request  # type: ignore
 
 from app.services.reports import (
     retrieve_all_reports,
     retrieve_single_report,
-    upload_report,
+    upload_report_data,
     delete_report,
 )
 from app.routes.reports import BP
@@ -44,7 +45,8 @@ def upload_report() -> flask.make_response:
     Returns:
         A Flask response object indicating the result of the upload.
     """
-    return upload_report()
+    file = request.files.get("file")
+    return upload_report_data(file)
 
 
 @BP.route("/reports/<string:uuid>", methods=["DELETE"])

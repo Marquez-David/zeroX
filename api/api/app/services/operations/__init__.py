@@ -1,1 +1,1 @@
-from .operations import change_category
+from .operations import retrieve_single_operation, change_category
