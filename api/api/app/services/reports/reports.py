@@ -1,5 +1,6 @@
 import flask  # type: ignore
-
+import typing
+import datetime
 from http import HTTPStatus
 
 from flask_jwt_extended import current_user  # type: ignore
@@ -24,7 +25,6 @@ def retrieve_all_reports() -> flask.make_response:
             "reports": [
                 {
                     "uuid": report.uuid,
-                    "iban": report.iban,
                     "date": report.date.isoformat(),
                     "balance": report.balance,
                 }
@@ -54,7 +54,6 @@ def retrieve_single_report(uuid: str) -> flask.make_response:
             "msg": "OK",
             "report": {
                 "uuid": report.uuid,
-                "iban": report.iban,
                 "date": report.date.isoformat(),
                 "balance": report.balance,
                 "operations": [
@@ -83,10 +82,69 @@ def upload_report_data(file: FileStorage) -> flask.make_response:
     Returns:
         A Flask response object indicating the result of the upload.
     """
-    if not file:
-        return flask.make_response({"msg": "No file provided."}, HTTPStatus.BAD_REQUEST)
+    if not _check_file_format(file):
+        return flask.make_response({"msg": "Invalid file."}, HTTPStatus.BAD_REQUEST)
+
+    random_cat = models.Category.query.first()
+
+    report = models.Report()
+    DB.session.add(report)
+    DB.session.flush()
+
+    try:
+        df = pd.read_excel(file)
+        for _, row in df.iterrows():
+            operation = models.Operation(
+                amount=pd.to_numeric(row["Importe"]),
+                concept=row["Movimiento"],
+                date=pd.to_datetime(row["Fecha"]),
+            )
+            operation.report_id = report.id
+            operation.category_id = random_cat.id
+            DB.session.add(operation)
+
+        report.balance = round(df["Importe"].sum(), 2)
+        DB.session.commit()
+
+    except Exception as e:
+        return flask.make_response({"msg": "Invalid file."}, HTTPStatus.BAD_REQUEST)
 
     return flask.make_response({"msg": "Report upload successfully."}, HTTPStatus.OK)
+
+
+def _check_file_format(file: FileStorage) -> bool:
+    """Check if the uploaded file is in a valid format.
+
+    Args:
+        file (FileStorage): The uploaded report file.
+
+    Returns:
+        bool: True if the file format is valid, False otherwise.
+    """
+    if not file:
+        # Check if a file was provided
+        return False
+
+    if not file.filename.endswith((".xls", ".xlsx")):
+        # Check if the file has a valid Excel extension
+        return False
+
+    try:
+        df = pd.read_excel(file)
+        required_columns = {"Fecha", "Importe", "Movimiento"}
+
+        if df.empty:
+            # Check if the DataFrame is empty
+            return False
+
+        if not required_columns.issubset(set(df.columns)):
+            # Check if missing required columns
+            return False
+
+        return True
+
+    except Exception:
+        return False
 
 
 def delete_report(uuid: str) -> flask.make_response:

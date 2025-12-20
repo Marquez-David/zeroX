@@ -3,6 +3,8 @@ import uuid as uuid_gen
 import config
 import hmac
 
+from flask_jwt_extended import current_user  # type: ignore
+
 from argon2 import PasswordHasher  # type: ignore
 
 from sqlalchemy.dialects import postgresql
@@ -153,15 +155,11 @@ class Report(DB.Model):
         "Operation", back_populates="report", cascade="all, delete-orphan"
     )
 
-    def __init__(self, balance: float) -> None:
-        """
-        Initialize a Report instance.
-
-        Args:
-            balance (float): The balance of the report.
-        """
+    def __init__(self) -> None:
+        """Initialize a Report instance."""
+        self.user_id = current_user.id
         self.date = datetime.now(timezone.utc)
-        self.balance = balance
+        self.balance = 0.0
 
     def __repr__(self) -> str:
         """
@@ -213,7 +211,7 @@ class Operation(DB.Model):
     )
     report = DB.relationship("Report", back_populates="operations")
 
-    def __init__(self, amount: float, concept: str) -> None:
+    def __init__(self, amount: float, concept: str, date: datetime) -> None:
         """
         Initialize an Operation instance.
 
@@ -221,7 +219,7 @@ class Operation(DB.Model):
             amount (float): The amount of the operation.
             concept (str): The concept of the operation.
         """
-        self.date = datetime.now(timezone.utc)
+        self.date = date
         self.amount = amount
         self.concept = concept
 
