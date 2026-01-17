@@ -22,6 +22,9 @@ JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY")
 JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=15)
 JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
 
+# Blockstream API URL
+WALLET_API_URL = os.environ.get("WALLET_API_URL", "https://blockstream.info/api/")
+
 
 class config:
     """Configuration class for the Flask application."""
@@ -49,3 +52,6 @@ class config:
     # Account lockout configuration
     MAX_PASSWORD_ATTEMPTS = 5
     LOCKOUT_TIME = timedelta(minutes=15)
+
+    # Wallet api configuration
+    WALLET_SERVICE_URL = WALLET_API_URL

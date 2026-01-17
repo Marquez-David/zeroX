@@ -157,6 +157,7 @@ class Wallet(DB.Model):
         Args:
             address (str): The cryptocurrency wallet address.
         """
+        self.user_id = current_user.id
         self.address = address
 
     def __repr__(self) -> str:
