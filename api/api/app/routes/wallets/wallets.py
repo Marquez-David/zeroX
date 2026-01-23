@@ -1,31 +1,28 @@
 import flask  # type: ignore
 
-from app.routes.wallets import BP
-
 from flask_jwt_extended import jwt_required  # type: ignore
 
-from app.services.wallets.wallets import (
-    retrieve_all_wallets,
-    retrieve_single_wallet,
-    add_wallet_data,
-)
+from app.services import wallets
+from app.routes.wallets import BP
 
 
 @BP.route("/wallets", methods=["GET"])
 @jwt_required()
 def retrieve_wallets() -> flask.make_response:
-    """Retrieve all wallets associated with the current user.
+    """
+    Retrieve all wallets associated with the current user.
 
     Returns:
         A Flask response object containing the user's wallets.
     """
-    return retrieve_all_wallets()
+    return wallets.retrieve_wallets()
 
 
 @BP.route("/wallets/<string:uuid>", methods=["GET"])
 @jwt_required()
 def retrieve_wallet(uuid: str) -> flask.make_response:
-    """Retrieve a single wallet associated with the current user.
+    """
+    Retrieve a single wallet associated with the current user.
 
     Args:
         uuid (str): The UUID of the wallet to retrieve.
@@ -33,25 +30,27 @@ def retrieve_wallet(uuid: str) -> flask.make_response:
     Returns:
         A Flask response object containing the user's wallet.
     """
-    return retrieve_single_wallet(uuid)
+    return wallets.retrieve_wallet(uuid)
 
 
 @BP.route("/wallets", methods=["POST"])
 @jwt_required()
 def add_wallet() -> flask.make_response:
-    """Add a new wallet for the current user.
+    """
+    Add a new wallet for the current user.
 
     Returns:
         A Flask response object indicating the result of the operation.
     """
     address = flask.request.json.get("address", "")
-    return add_wallet_data(address)
+    return wallets.add_wallet(address)
 
 
 @BP.route("/wallets", methods=["DELETE"])
 @jwt_required()
 def remove_wallet() -> flask.make_response:
-    """Remove a wallet for the current user.
+    """
+    Remove a wallet for the current user.
 
     Returns:
         A Flask response object indicating the result of the operation.

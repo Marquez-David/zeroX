@@ -1,7 +1,7 @@
 from .users import (
-    retrieve_current_user,
-    register_user,
+    retrieve_user,
+    create_user,
     change_password,
     change_username,
-    delete_current_user,
+    delete_user,
 )
