@@ -91,11 +91,11 @@ def upload_report(file: FileStorage) -> flask.make_response:
     DB.session.flush()
 
     try:
-        df = pd.read_excel(file)
+        df = pd.read_excel(file, skiprows=2)  # Skip first two rows
         for _, row in df.iterrows():
             operation = models.Operation(
                 amount=pd.to_numeric(row["Importe"]),
-                concept=row["Movimiento"],
+                concept=row["Concepto"],
                 date=pd.to_datetime(row["Fecha"]),
             )
             operation.report_id = report.id
