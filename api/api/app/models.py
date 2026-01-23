@@ -125,6 +125,56 @@ class User(DB.Model):
         return True
 
 
+class Wallet(DB.Model):
+    """
+    SQL table to store wallet data.
+
+    Attributes:
+        id (int): The unique identifier for the wallet.
+        uuid (uuid.UUID): The UUID of the wallet.
+        address (str): The cryptocurrency wallet address.
+        user_id (int): The ID of the user associated with the wallet.
+    """
+
+    __tablename__ = "wallets"
+    id: int = DB.Column(DB.Integer, primary_key=True, nullable=False, unique=True)
+    uuid: uuid_gen.UUID = DB.Column(
+        postgresql.UUID(as_uuid=True),
+        unique=True,
+        nullable=False,
+        default=uuid_gen.uuid4,
+    )
+    address: str = DB.Column(DB.String(128), unique=True, nullable=False)
+    user_id: int = DB.Column(
+        DB.Integer, DB.ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    user = DB.relationship("User", backref="wallets")
+
+    def __init__(self, address: str) -> None:
+        """
+        Initialize a Wallet instance.
+
+        Args:
+            address (str): The cryptocurrency wallet address.
+        """
+        self.user_id = current_user.id
+        self.address = address
+
+    def __repr__(self) -> str:
+        """
+        Return a string representation of the Wallet instance.
+
+        Returns:
+            str: A string representation of the Wallet instance.
+        """
+        return self._repr(
+            id=self.id,
+            uuid=self.uuid,
+            address=self.address,
+            user=self.user,
+        )
+
+
 class Report(DB.Model):
     """
     SQL table to store report data.

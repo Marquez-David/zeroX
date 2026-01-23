@@ -1,16 +1,15 @@
 import flask  # type: ignore
-
 from http import HTTPStatus
-from flask import current_app  # type: ignore
 from datetime import datetime, timezone
+
+from flask import current_app  # type: ignore
+from flask_jwt_extended import get_jwt, current_user, decode_token, create_access_token, create_refresh_token  # type: ignore
 
 from app import DB, models
 from app.jwt import jwt_redis_blocklist
 
-from flask_jwt_extended import get_jwt, current_user, decode_token, create_access_token, create_refresh_token  # type: ignore
 
-
-def login(email: str, password: str) -> flask.make_response:
+def login_user(email: str, password: str) -> flask.make_response:
     """
     Authenticate a user by email and password.
 
@@ -64,7 +63,7 @@ def login(email: str, password: str) -> flask.make_response:
     )
 
 
-def logout(refresh_token: str) -> flask.make_response:
+def logout_user(refresh_token: str) -> flask.make_response:
     """
     Logout a user by revoking their JWT token and clearing the session.
 
@@ -119,7 +118,7 @@ def logout(refresh_token: str) -> flask.make_response:
     return flask.make_response({"msg": "OK"}, HTTPStatus.OK)
 
 
-def refresh() -> flask.make_response:
+def refresh_token() -> flask.make_response:
     """
     Refresh the JWT token for the user.
 
