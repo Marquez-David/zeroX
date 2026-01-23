@@ -1,19 +1,17 @@
 import flask  # type: ignore
-import typing
-import datetime
 from http import HTTPStatus
+import pandas as pd  # type: ignore
 
 from flask_jwt_extended import current_user  # type: ignore
+from werkzeug.datastructures import FileStorage  # type: ignore
 
 from app import models
 from app.db import DB
 
-import pandas as pd  # type: ignore
-from werkzeug.datastructures import FileStorage  # type: ignore
 
-
-def retrieve_all_reports() -> flask.make_response:
-    """Retrieve user reports from the database.
+def retrieve_reports() -> flask.make_response:
+    """
+    Retrieve user reports from the database.
 
     Returns:
         A Flask response object containing the user's reports.
@@ -35,8 +33,9 @@ def retrieve_all_reports() -> flask.make_response:
     )
 
 
-def retrieve_single_report(uuid: str) -> flask.make_response:
-    """Retrieve a single user report from the database.
+def retrieve_report(uuid: str) -> flask.make_response:
+    """
+    Retrieve a single user report from the database.
 
     Args:
         uuid (str): The UUID of the report to retrieve.
@@ -72,7 +71,7 @@ def retrieve_single_report(uuid: str) -> flask.make_response:
     )
 
 
-def upload_report_data(file: FileStorage) -> flask.make_response:
+def upload_report(file: FileStorage) -> flask.make_response:
     """
     Upload and process a user report file.
 
@@ -113,7 +112,8 @@ def upload_report_data(file: FileStorage) -> flask.make_response:
 
 
 def _check_file_format(file: FileStorage) -> bool:
-    """Check if the uploaded file is in a valid format.
+    """
+    Check if the uploaded file is in a valid format.
 
     Args:
         file (FileStorage): The uploaded report file.
@@ -147,11 +147,12 @@ def _check_file_format(file: FileStorage) -> bool:
         return False
 
 
-def delete_report(uuid: str) -> flask.make_response:
-    """Delete a user report from the database.
+def remove_report(uuid: str) -> flask.make_response:
+    """
+    Remove a user report from the database.
 
     Args:
-        uuid (str): The UUID of the report to delete.
+        uuid (str): The UUID of the report to remove.
 
     Returns:
         A Flask response object indicating the result of the deletion.
@@ -163,4 +164,4 @@ def delete_report(uuid: str) -> flask.make_response:
 
     DB.session.delete(report)
     DB.session.commit()
-    return flask.make_response({"msg": "Report deleted."}, HTTPStatus.OK)
+    return flask.make_response({"msg": "Report removed."}, HTTPStatus.OK)

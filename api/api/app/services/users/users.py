@@ -1,17 +1,15 @@
 import flask  # type: ignore
-
 from http import HTTPStatus
 
 from flask import current_app  # type: ignore
-
-from app.jwt import jwt_redis_blocklist
 from flask_jwt_extended import get_jwt, decode_token, current_user  # type: ignore
 
+from app.jwt import jwt_redis_blocklist
 from app import models
 from app.db import DB
 
 
-def retrieve_current_user() -> flask.make_response:
+def retrieve_user() -> flask.make_response:
     """
     Retrieve current user information from the database.
 
@@ -38,7 +36,7 @@ def retrieve_current_user() -> flask.make_response:
     )
 
 
-def register_user(email: str, password: str) -> flask.make_response:
+def create_user(email: str, password: str) -> flask.make_response:
     """
     Register a new user with the given email and password.
 
@@ -112,7 +110,7 @@ def change_username(username: str) -> flask.make_response:
     return flask.make_response({"msg": "Username changed successfully."}, HTTPStatus.OK)
 
 
-def delete_current_user(refresh_token: str) -> flask.make_response:
+def delete_user(refresh_token: str) -> flask.make_response:
     """
     Delete the account of the current user.
 

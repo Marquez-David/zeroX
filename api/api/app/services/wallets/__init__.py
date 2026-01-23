@@ -1,1 +1,1 @@
-from .wallets import retrieve_all_wallets, retrieve_single_wallet, add_wallet_data
+from .wallets import retrieve_wallets, retrieve_wallet, add_wallet

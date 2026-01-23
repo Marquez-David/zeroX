@@ -1,10 +1,8 @@
 import flask  # type: ignore
 import requests  # type: ignore
-
 from http import HTTPStatus
 
 from flask import current_app  # type: ignore
-
 from flask_jwt_extended import current_user  # type: ignore
 
 from app import models
@@ -13,7 +11,7 @@ from app.db import DB
 SATOSHIS_PER_BTC = 100_000_000  # Number of satoshis in one Bitcoin
 
 
-def retrieve_all_wallets() -> flask.make_response:
+def retrieve_wallets() -> flask.make_response:
     """
     Retrieve all wallets associated with the current user.
 
@@ -37,7 +35,7 @@ def retrieve_all_wallets() -> flask.make_response:
     )
 
 
-def retrieve_single_wallet(uuid: str) -> flask.make_response:
+def retrieve_wallet(uuid: str) -> flask.make_response:
     """
     Retrieve a single wallet associated with the current user.
 
@@ -185,7 +183,7 @@ def _fetch_wallet_txs(address: str) -> tuple[list[dict], flask.make_response]:
     return transactions, None
 
 
-def add_wallet_data(address: str) -> flask.make_response:
+def add_wallet(address: str) -> flask.make_response:
     """
     Add a new wallet for the current user.
 

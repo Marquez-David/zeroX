@@ -1,5 +1,4 @@
 import flask  # type: ignore
-
 from http import HTTPStatus
 
 from flask_jwt_extended import current_user  # type: ignore
@@ -8,8 +7,9 @@ from app import models
 from app.db import DB
 
 
-def retrieve_single_operation(uuid: str) -> flask.make_response:
-    """Retrieve a single operation by its UUID.
+def retrieve_operation(uuid: str) -> flask.make_response:
+    """
+    Retrieve a single operation by its UUID.
 
     Args:
         uuid (str): The UUID of the operation to retrieve.
@@ -38,7 +38,8 @@ def retrieve_single_operation(uuid: str) -> flask.make_response:
 
 
 def change_category(operation: str, category: str) -> flask.make_response:
-    """Update the category of an operation.
+    """
+    Update the category of an operation.
 
     Args:
         operation (str): The operation to update.
