@@ -46,13 +46,16 @@ def add_wallet() -> flask.make_response:
     return wallets.add_wallet(address)
 
 
-@BP.route("/wallets", methods=["DELETE"])
+@BP.route("/wallets/<string:uuid>", methods=["DELETE"])
 @jwt_required()
-def remove_wallet() -> flask.make_response:
+def remove_wallet(uuid: str) -> flask.make_response:
     """
     Remove a wallet for the current user.
+
+    Args:
+        uuid (str): The UUID of the wallet to remove.
 
     Returns:
         A Flask response object indicating the result of the operation.
     """
-    # return retrieve_single_wallet()
+    return wallets.remove_wallet(uuid)

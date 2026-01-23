@@ -219,3 +219,24 @@ def add_wallet(address: str) -> flask.make_response:
     DB.session.commit()
 
     return flask.make_response({"msg": "Wallet added successfully."}, HTTPStatus.OK)
+
+
+def remove_wallet(uuid: str) -> flask.make_response:
+    """
+    Remove a wallet for the current user.
+
+    Args:
+        uuid (str): The UUID of the wallet to remove.
+
+    Returns:
+        flask.Response: A Flask response object with a JSON message and appropriate HTTP status code.
+    """
+    wallet = models.Wallet.query.filter_by(user_id=current_user.id, uuid=uuid).first()
+    if not wallet:
+        # Check if the wallet exists for the user
+        return flask.make_response({"msg": "Invalid wallet."}, HTTPStatus.NOT_FOUND)
+
+    DB.session.delete(wallet)
+    DB.session.commit()
+
+    return flask.make_response({"msg": "Wallet removed successfully."}, HTTPStatus.OK)
