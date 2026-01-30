@@ -81,70 +81,142 @@ def upload_report(file: FileStorage) -> flask.make_response:
     Returns:
         A Flask response object indicating the result of the upload.
     """
-    if not _check_file_format(file):
+    if data_frame := _parse_file(file) is None:
         return flask.make_response({"msg": "Invalid file."}, HTTPStatus.BAD_REQUEST)
 
-    random_cat = models.Category.query.first()
-
-    report = models.Report()
-    DB.session.add(report)
-    DB.session.flush()
-
     try:
-        df = pd.read_excel(file, skiprows=2)  # Skip first two rows
-        for _, row in df.iterrows():
-            operation = models.Operation(
-                amount=pd.to_numeric(row["Importe"]),
-                concept=row["Concepto"],
-                date=pd.to_datetime(row["Fecha"]),
-            )
-            operation.report_id = report.id
-            operation.category_id = random_cat.id
-            DB.session.add(operation)
 
-        report.balance = round(df["Importe"].sum(), 2)
+        # Group operations by year and month
+        operations_by_month = data_frame.groupby(data_frame["Fecha"].dt.to_period("M"))
+
+        # Create a report for each month
+        for date, operations in operations_by_month:
+            report = _create_report(date, operations)
+            _create_operation(report.id, operations)
+
         DB.session.commit()
 
     except Exception as e:
-        return flask.make_response({"msg": "Invalid file."}, HTTPStatus.BAD_REQUEST)
+        return flask.make_response(
+            {"msg": "Error procesing file."}, HTTPStatus.INTERNAL_SERVER_ERROR
+        )
 
     return flask.make_response({"msg": "Report upload successfully."}, HTTPStatus.OK)
 
 
-def _check_file_format(file: FileStorage) -> bool:
+def _parse_file(file: FileStorage) -> pd.DataFrame | None:
     """
-    Check if the uploaded file is in a valid format.
+    Parse an uploaded Excel file into a DataFrame.
 
     Args:
         file (FileStorage): The uploaded report file.
 
     Returns:
-        bool: True if the file format is valid, False otherwise.
+        DataFrame | None: The parsed DataFrame or None if invalid.
     """
     if not file:
         # Check if a file was provided
-        return False
+        return None
 
     if not file.filename.endswith((".xls", ".xlsx")):
         # Check if the file has a valid Excel extension
-        return False
+        return None
 
     try:
-        df = pd.read_excel(file)
-        required_columns = {"Fecha", "Importe", "Movimiento"}
-
-        if df.empty:
+        data_frame = pd.read_excel(file, skiprows=2)  # Skip first two rows
+        if data_frame.empty:
             # Check if the DataFrame is empty
-            return False
+            return None
 
-        if not required_columns.issubset(set(df.columns)):
+        required_columns = {"Fecha", "Importe", "Movimiento"}
+        if not required_columns.issubset(set(data_frame.columns)):
             # Check if missing required columns
-            return False
+            return None
 
-        return True
+        # Convert date column to datetime
+        data_frame["Fecha"] = pd.to_datetime(data_frame["Fecha"])
+        return data_frame
 
     except Exception:
-        return False
+        return None
+
+
+def _create_report(date: pd.Period, operations_df: pd.DataFrame) -> models.Report:
+    """
+    Create or retrieve a report for a given month and year.
+
+    Args:
+        date (Period): The year and month for the report.
+        operations_df (DataFrame): The DataFrame containing operations for the month.
+
+    Returns:
+        models.Report: The created or retrieved report.
+    """
+    month_start = date.to_timestamp(how="start").to_pydatetime()
+    next_month_start = (date + 1).to_timestamp(how="start").to_pydatetime()
+
+    report = models.Report.query.filter(
+        models.Report.user_id == current_user.id,
+        models.Report.date >= month_start,
+        models.Report.date < next_month_start,
+    ).first()
+
+    if not report:
+        report = models.Report(
+            balance=float(round(operations_df["Importe"].sum(), 2)),
+            date=pd.to_datetime(operations_df["Fecha"].max()),
+        )
+        DB.session.add(report)
+        DB.session.flush()
+
+    return report
+
+
+def _create_operation(report_id: int, operations_df: pd.DataFrame) -> None:
+    """
+    Create operations for a given report.
+
+    Args:
+        report_id (int): The ID of the report.
+        operations_df (DataFrame): The DataFrame containing operations for the report.
+    """
+
+    random_cat = models.Category.query.first()
+
+    existing_ops = set()
+    rows = (
+        DB.session.query(
+            models.Operation.date,
+            models.Operation.concept,
+            models.Operation.amount,
+        )
+        .filter(models.Operation.report_id == report_id)
+        .all()
+    )
+    for dt, conc, amt in rows:
+        dt_only = dt.date() if hasattr(dt, "date") else dt
+        conc_norm = conc.strip().lower() if conc else ""
+        amt_norm = float(round(amt, 2)) if amt is not None else None
+        existing_ops.add((dt_only, conc_norm, amt_norm))
+
+    for _, row in operations_df.iterrows():
+        date_only = pd.to_datetime(row["Fecha"]).date()
+        concept = str(row["Movimiento"]).strip().lower()
+        amount = float(round(pd.to_numeric(row["Importe"]), 2))
+
+        # evitar duplicados por (fecha, concepto, importe)
+        if (date_only, concept, amount) in existing_ops:
+            continue
+
+        operation = models.Operation(
+            amount=amount,
+            concept=str(row["Movimiento"]).strip(),
+            date=pd.to_datetime(row["Fecha"]),
+            report_id=report_id,
+            category_id=random_cat.id,
+        )
+        DB.session.add(operation)
+        existing_ops.add((date_only, concept, amount))
 
 
 def remove_report(uuid: str) -> flask.make_response:

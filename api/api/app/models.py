@@ -205,11 +205,17 @@ class Report(DB.Model):
         "Operation", back_populates="report", cascade="all, delete-orphan"
     )
 
-    def __init__(self) -> None:
-        """Initialize a Report instance."""
+    def __init__(self, balance: float, date: datetime) -> None:
+        """
+        Initialize a Report instance.
+
+        Args:
+            balance (float): The balance of the report.
+            date (datetime): The date of the report.
+        """
         self.user_id = current_user.id
-        self.date = datetime.now(timezone.utc)
-        self.balance = 0.0
+        self.balance = balance
+        self.date = date
 
     def __repr__(self) -> str:
         """
