@@ -132,7 +132,7 @@ class Wallet(DB.Model):
     Attributes:
         id (int): The unique identifier for the wallet.
         uuid (uuid.UUID): The UUID of the wallet.
-        address (str): The cryptocurrency wallet address.
+        xpub (str): The extended public key of the wallet.
         user_id (int): The ID of the user associated with the wallet.
     """
 
@@ -144,7 +144,7 @@ class Wallet(DB.Model):
         nullable=False,
         default=uuid_gen.uuid4,
     )
-    address: str = DB.Column(DB.String(128), unique=True, nullable=False)
+    xpub: str = DB.Column(DB.String(256), unique=True, nullable=False)
     user_id: int = DB.Column(
         DB.Integer, DB.ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )

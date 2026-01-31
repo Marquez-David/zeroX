@@ -42,8 +42,8 @@ def add_wallet() -> flask.make_response:
     Returns:
         A Flask response object indicating the result of the operation.
     """
-    address = flask.request.json.get("address", "")
-    return wallets.add_wallet(address)
+    xpub = flask.request.json.get("xpub", "")
+    return wallets.add_wallet(xpub)
 
 
 @BP.route("/wallets/<string:uuid>", methods=["DELETE"])
