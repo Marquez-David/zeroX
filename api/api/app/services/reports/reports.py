@@ -1,6 +1,7 @@
 import flask  # type: ignore
 from http import HTTPStatus
 import pandas as pd  # type: ignore
+from datetime import datetime
 
 from flask_jwt_extended import current_user  # type: ignore
 from werkzeug.datastructures import FileStorage  # type: ignore
@@ -81,11 +82,10 @@ def upload_report(file: FileStorage) -> flask.make_response:
     Returns:
         A Flask response object indicating the result of the upload.
     """
-    if data_frame := _parse_file(file) is None:
+    if (data_frame := _parse_file(file)) is None:
         return flask.make_response({"msg": "Invalid file."}, HTTPStatus.BAD_REQUEST)
 
     try:
-
         # Group operations by year and month
         operations_by_month = data_frame.groupby(data_frame["Fecha"].dt.to_period("M"))
 
@@ -184,39 +184,30 @@ def _create_operation(report_id: int, operations_df: pd.DataFrame) -> None:
     random_cat = models.Category.query.first()
 
     existing_ops = set()
-    rows = (
-        DB.session.query(
-            models.Operation.date,
-            models.Operation.concept,
-            models.Operation.amount,
-        )
-        .filter(models.Operation.report_id == report_id)
-        .all()
-    )
-    for dt, conc, amt in rows:
-        dt_only = dt.date() if hasattr(dt, "date") else dt
-        conc_norm = conc.strip().lower() if conc else ""
-        amt_norm = float(round(amt, 2)) if amt is not None else None
-        existing_ops.add((dt_only, conc_norm, amt_norm))
+
+    operations = models.Operation.query.filter_by(report_id=report_id).all()
+    for operation in operations:
+        existing_ops.add((operation.date, operation.concept, operation.amount))
 
     for _, row in operations_df.iterrows():
-        date_only = pd.to_datetime(row["Fecha"]).date()
-        concept = str(row["Movimiento"]).strip().lower()
+        date = pd.to_datetime(row["Fecha"]).to_pydatetime()
+        concept = str(row["Movimiento"]).strip()
         amount = float(round(pd.to_numeric(row["Importe"]), 2))
 
-        # evitar duplicados por (fecha, concepto, importe)
-        if (date_only, concept, amount) in existing_ops:
+        if (date, concept, amount) in existing_ops:
+            # Check if operation already exists
             continue
+
+        existing_ops.add((date, concept, amount))
 
         operation = models.Operation(
             amount=amount,
-            concept=str(row["Movimiento"]).strip(),
-            date=pd.to_datetime(row["Fecha"]),
+            concept=concept,
+            date=date,
             report_id=report_id,
             category_id=random_cat.id,
         )
         DB.session.add(operation)
-        existing_ops.add((date_only, concept, amount))
 
 
 def remove_report(uuid: str) -> flask.make_response:

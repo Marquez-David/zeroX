@@ -267,17 +267,29 @@ class Operation(DB.Model):
     )
     report = DB.relationship("Report", back_populates="operations")
 
-    def __init__(self, amount: float, concept: str, date: datetime) -> None:
+    def __init__(
+        self,
+        amount: float,
+        concept: str,
+        date: datetime,
+        report_id: int,
+        category_id: int,
+    ) -> None:
         """
         Initialize an Operation instance.
 
         Args:
             amount (float): The amount of the operation.
             concept (str): The concept of the operation.
+            date (datetime): The date of the operation.
+            report_id (int): The ID of the report associated with the operation.
+            category_id (int): The ID of the category associated with the operation.
         """
         self.date = date
         self.amount = amount
         self.concept = concept
+        self.report_id = report_id
+        self.category_id = category_id
 
     def __repr__(self) -> str:
         """
