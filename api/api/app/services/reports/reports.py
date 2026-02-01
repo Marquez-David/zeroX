@@ -1,7 +1,7 @@
 import flask  # type: ignore
 from http import HTTPStatus
 import pandas as pd  # type: ignore
-from datetime import datetime
+import typing
 
 from flask_jwt_extended import current_user  # type: ignore
 from werkzeug.datastructures import FileStorage  # type: ignore
@@ -104,7 +104,7 @@ def upload_report(file: FileStorage) -> flask.make_response:
     return flask.make_response({"msg": "Report upload successfully."}, HTTPStatus.OK)
 
 
-def _parse_file(file: FileStorage) -> pd.DataFrame | None:
+def _parse_file(file: FileStorage) -> typing.Optional[pd.DataFrame]:
     """
     Parse an uploaded Excel file into a DataFrame.
 
@@ -112,7 +112,7 @@ def _parse_file(file: FileStorage) -> pd.DataFrame | None:
         file (FileStorage): The uploaded report file.
 
     Returns:
-        DataFrame | None: The parsed DataFrame or None if invalid.
+        Optional[DataFrame]: The parsed DataFrame, or None if parsing failed.
     """
     if not file:
         # Check if a file was provided
