@@ -183,38 +183,35 @@ def _fetch_wallet_txs(address: str) -> tuple[list[dict], flask.make_response]:
     return transactions, None
 
 
-def add_wallet(address: str) -> flask.make_response:
+def add_wallet(xpub: str) -> flask.make_response:
     """
     Add a new wallet for the current user.
 
     Args:
-        address (str): The wallet address to add.
+        xpub (str): The wallet xpub to add.
 
     Returns:
         flask.Response: A Flask response object with a JSON message and appropriate HTTP status code.
     """
-
-    if not address:
-        # Check if address is provided
+    if not xpub:
+        # Check if xpub is provided
         return flask.make_response(
-            {"msg": "Wallet address is required."}, HTTPStatus.BAD_REQUEST
+            {"msg": "Wallet extended public key is required."}, HTTPStatus.BAD_REQUEST
         )
 
-    wallet = models.Wallet.query.filter_by(
-        user_id=current_user.id, address=address
-    ).first()
+    wallet = models.Wallet.get(xpub=xpub).first()
     if wallet:
-        # Check if wallet already exists for the user
+        # Check if the wallet already exists for the user
         return flask.make_response(
             {"msg": "Wallet already exists."}, HTTPStatus.CONFLICT
         )
 
-    _, error_response = _fetch_wallet_data(address)
+    _, error_response = _fetch_wallet_data(xpub)
     if error_response:
         # Check if address exists by fetching wallet data
         return error_response
 
-    new_wallet = models.Wallet(address=address)
+    new_wallet = models.Wallet(xpub=xpub)
     DB.session.add(new_wallet)
     DB.session.commit()
 
