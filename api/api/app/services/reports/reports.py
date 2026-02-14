@@ -24,7 +24,7 @@ def retrieve_reports() -> flask.make_response:
             "reports": [
                 {
                     "uuid": report.uuid,
-                    "date": report.date.isoformat(),
+                    "date": report.date,
                     "balance": report.balance,
                 }
                 for report in reports
@@ -54,13 +54,13 @@ def retrieve_report(uuid: str) -> flask.make_response:
             "msg": "OK",
             "report": {
                 "uuid": report.uuid,
-                "date": report.date.isoformat(),
+                "date": report.date,
                 "balance": report.balance,
                 "operations": [
                     {
                         "uuid": operation.uuid,
                         "amount": operation.amount,
-                        "date": operation.date.isoformat(),
+                        "date": operation.date,
                         "concept": operation.concept,
                         "category": operation.category.name,
                     }

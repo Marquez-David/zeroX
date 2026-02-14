@@ -26,7 +26,7 @@ JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=15)
 JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
 
 # Blockstream API URL
-WALLET_API_URL = os.environ.get("WALLET_API_URL", "https://api.blockchair.com/bitcoin/")
+WALLET_API_URL = os.environ.get("WALLET_API_URL", "https://mempool.space/api/address/")
 
 
 class config:
