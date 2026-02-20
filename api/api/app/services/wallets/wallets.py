@@ -1,6 +1,7 @@
 import flask  # type: ignore
 import requests  # type: ignore
 from http import HTTPStatus
+from bitcoinlib.keys import HDKey  # type: ignore
 
 from flask import current_app  # type: ignore
 from flask_jwt_extended import current_user  # type: ignore
@@ -26,7 +27,7 @@ def retrieve_wallets() -> flask.make_response:
             "wallets": [
                 {
                     "uuid": wallet.uuid,
-                    "address": wallet.address,
+                    "xpub": wallet.xpub,
                 }
                 for wallet in wallets
             ],
@@ -227,16 +228,41 @@ def add_wallet(xpub: str) -> flask.make_response:
             {"msg": "Wallet already exists."}, HTTPStatus.CONFLICT
         )
 
-    _, error_response = _fetch_wallet_data(xpub)
-    if error_response:
-        # Check if address exists by fetching wallet data
-        return error_response
+    addresses = _get_addresses_from_xpub(xpub)
+    if not addresses:
+        # Check if xpub is valid by trying to derive addresses
+        return flask.make_response(
+            {"msg": "Invalid extended public key."}, HTTPStatus.BAD_REQUEST
+        )
 
     new_wallet = models.Wallet(xpub=xpub)
     DB.session.add(new_wallet)
     DB.session.commit()
 
     return flask.make_response({"msg": "Wallet added successfully."}, HTTPStatus.OK)
+
+
+def _get_addresses_from_xpub(xpub: str) -> list[str]:
+    """
+    Derive addresses from the given xpub.
+
+    Args:
+        xpub (str): The wallet extended public key.
+
+    Returns:
+        list[str]: A list of derived addresses.
+    """
+    try:
+        key = HDKey(xpub)
+
+        addresses = []
+        for i in range(2):
+            child = key.subkey_for_path(f"0/{i}")
+            addresses.append(child.address(encoding="bech32"))
+
+        return addresses
+    except Exception:
+        return []
 
 
 def remove_wallet(uuid: str) -> flask.make_response:
