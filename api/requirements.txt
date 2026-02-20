@@ -14,3 +14,5 @@ Flask-Migrate==4.1.0
 argon2-cffi==25.1.0
 pandas==2.3.3
 openpyxl==3.1.5
+cryptography==46.0.4
+bitcoinlib==0.7.7

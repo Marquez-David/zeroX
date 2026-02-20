@@ -1,7 +1,7 @@
 import flask  # type: ignore
 from http import HTTPStatus
 import pandas as pd  # type: ignore
-from datetime import datetime
+import typing
 
 from flask_jwt_extended import current_user  # type: ignore
 from werkzeug.datastructures import FileStorage  # type: ignore
@@ -24,7 +24,7 @@ def retrieve_reports() -> flask.make_response:
             "reports": [
                 {
                     "uuid": report.uuid,
-                    "date": report.date.isoformat(),
+                    "date": report.date,
                     "balance": report.balance,
                 }
                 for report in reports
@@ -54,13 +54,13 @@ def retrieve_report(uuid: str) -> flask.make_response:
             "msg": "OK",
             "report": {
                 "uuid": report.uuid,
-                "date": report.date.isoformat(),
+                "date": report.date,
                 "balance": report.balance,
                 "operations": [
                     {
                         "uuid": operation.uuid,
                         "amount": operation.amount,
-                        "date": operation.date.isoformat(),
+                        "date": operation.date,
                         "concept": operation.concept,
                         "category": operation.category.name,
                     }
@@ -82,12 +82,12 @@ def upload_report(file: FileStorage) -> flask.make_response:
     Returns:
         A Flask response object indicating the result of the upload.
     """
-    if (data_frame := _parse_file(file)) is None:
+    if (df := _parse_file(file)) is None:
         return flask.make_response({"msg": "Invalid file."}, HTTPStatus.BAD_REQUEST)
 
     try:
         # Group operations by year and month
-        operations_by_month = data_frame.groupby(data_frame["Fecha"].dt.to_period("M"))
+        operations_by_month = df.groupby(df["Fecha"].dt.to_period("M"))
 
         # Create a report for each month
         for date, operations in operations_by_month:
@@ -96,15 +96,13 @@ def upload_report(file: FileStorage) -> flask.make_response:
 
         DB.session.commit()
 
-    except Exception as e:
-        return flask.make_response(
-            {"msg": "Error procesing file."}, HTTPStatus.INTERNAL_SERVER_ERROR
-        )
+    except Exception:
+        return flask.make_response({"msg": "Error in file."}, HTTPStatus.BAD_REQUEST)
 
     return flask.make_response({"msg": "Report upload successfully."}, HTTPStatus.OK)
 
 
-def _parse_file(file: FileStorage) -> pd.DataFrame | None:
+def _parse_file(file: FileStorage) -> typing.Optional[pd.DataFrame]:
     """
     Parse an uploaded Excel file into a DataFrame.
 
@@ -112,9 +110,9 @@ def _parse_file(file: FileStorage) -> pd.DataFrame | None:
         file (FileStorage): The uploaded report file.
 
     Returns:
-        DataFrame | None: The parsed DataFrame or None if invalid.
+        Optional[DataFrame]: The parsed DataFrame, or None if parsing failed.
     """
-    if not file:
+    if not file or not file.filename:
         # Check if a file was provided
         return None
 
@@ -123,21 +121,38 @@ def _parse_file(file: FileStorage) -> pd.DataFrame | None:
         return None
 
     try:
-        data_frame = pd.read_excel(file, skiprows=2)  # Skip first two rows
-        if data_frame.empty:
-            # Check if the DataFrame is empty
+        df = pd.read_excel(file)
+        if df.empty:
+            # Check if data frame is empty
             return None
 
-        required_columns = {"Fecha", "Importe", "Movimiento"}
-        if not required_columns.issubset(set(data_frame.columns)):
-            # Check if missing required columns
-            return None
+        if len(df.columns) == 2 and ";" in df.columns[0]:
+            # Check if the file contains an embedded CSV in a single column
+            file.seek(0)
+            df = pd.read_excel(file, header=None)
 
-        # Convert date column to datetime
-        data_frame["Fecha"] = pd.to_datetime(data_frame["Fecha"])
-        return data_frame
+            # Extract column names and data into separate columns
+            columns = df.iloc[2, 0].split(";")
+            data = df.iloc[3:, 0].str.split(";", expand=True)
 
-    except Exception:
+            # Keep only the columns that match the expected column names and drop empty rows
+            df = data.iloc[:, : len(columns)]
+            df = df.replace(r"^\s*$", pd.NA, regex=True).dropna(how="all")
+
+            df.columns = columns
+        else:
+            df.rename(
+                columns={"Fecha de inicio": "Fecha", "DescripciÃ³n": "Concepto"},
+                inplace=True,
+            )
+
+        df["Fecha"] = pd.to_datetime(df["Fecha"], format="%d/%m/%Y")
+        df["Conceto"] = str(df["Concepto"]).strip()
+        df["Importe"] = round(pd.to_numeric(df["Importe"]), 2)
+
+        return df
+
+    except Exception as e:
         return None
 
 
@@ -191,8 +206,8 @@ def _create_operation(report_id: int, operations_df: pd.DataFrame) -> None:
 
     for _, row in operations_df.iterrows():
         date = pd.to_datetime(row["Fecha"]).to_pydatetime()
-        concept = str(row["Movimiento"]).strip()
-        amount = float(round(pd.to_numeric(row["Importe"]), 2))
+        concept = row["Concepto"].strip()
+        amount = float(row["Importe"])
 
         if (date, concept, amount) in existing_ops:
             # Check if operation already exists

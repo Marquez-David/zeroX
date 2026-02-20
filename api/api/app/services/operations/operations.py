@@ -28,7 +28,7 @@ def retrieve_operation(uuid: str) -> flask.make_response:
             "operation": {
                 "uuid": operation.uuid,
                 "amount": operation.amount,
-                "date": operation.date.isoformat(),
+                "date": operation.date,
                 "description": operation.description,
                 "category": operation.category.name,
             },

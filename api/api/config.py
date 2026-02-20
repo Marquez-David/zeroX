@@ -17,13 +17,14 @@ DB_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB
 # Password hashing credentials
 PEPPER = os.environ.get("PEPPER")
 
+# Encryption key for sensitive data
+ENCRYPTION_KEY = os.environ.get("ENCRYPTION_KEY")
+
 # JWT credentials
 JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY")
-JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=15)
-JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
 
 # Blockstream API URL
-WALLET_API_URL = os.environ.get("WALLET_API_URL", "https://blockstream.info/api/")
+WALLET_API_URL = os.environ.get("WALLET_API_URL", "https://mempool.space/api/address/")
 
 
 class config:
@@ -43,15 +44,18 @@ class config:
 
     # JWT configuration
     JWT_SECRET_KEY = JWT_SECRET_KEY
-    JWT_ACCESS_TOKEN_EXPIRES = JWT_ACCESS_TOKEN_EXPIRES
-    JWT_REFRESH_TOKEN_EXPIRES = JWT_REFRESH_TOKEN_EXPIRES
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=15)
+    JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
 
     # Secret keys configuration
     PEPPER = PEPPER
+    ENCRYPTION_KEY = ENCRYPTION_KEY
 
     # Account lockout configuration
     MAX_PASSWORD_ATTEMPTS = 5
     LOCKOUT_TIME = timedelta(minutes=15)
 
     # Wallet api configuration
-    WALLET_SERVICE_URL = WALLET_API_URL
+    WALLET_API_URL = WALLET_API_URL
+    WALLET_API_TIMEOUT = 10  # seconds
+    NUM_ADDRESSES_TO_DERIVE = 25

@@ -2,13 +2,15 @@ import typing
 import uuid as uuid_gen
 import config
 import hmac
+import hashlib
 
 from flask_jwt_extended import current_user  # type: ignore
-
 from argon2 import PasswordHasher  # type: ignore
+from cryptography.fernet import Fernet  # type: ignore
 
 from sqlalchemy.dialects import postgresql
-from datetime import datetime, timezone
+from sqlalchemy.orm import query
+from datetime import datetime
 
 from app.db import DB
 
@@ -132,7 +134,8 @@ class Wallet(DB.Model):
     Attributes:
         id (int): The unique identifier for the wallet.
         uuid (uuid.UUID): The UUID of the wallet.
-        address (str): The cryptocurrency wallet address.
+        xpub (str): The extended public key of the wallet.
+        xpub_hash (str): The hash of the extended public key.
         user_id (int): The ID of the user associated with the wallet.
     """
 
@@ -144,21 +147,23 @@ class Wallet(DB.Model):
         nullable=False,
         default=uuid_gen.uuid4,
     )
-    address: str = DB.Column(DB.String(128), unique=True, nullable=False)
+    _xpub: str = DB.Column("xpub", DB.String(256), unique=True, nullable=False)
+    xpub_hash: str = DB.Column(DB.String(128), unique=True, nullable=False)
     user_id: int = DB.Column(
         DB.Integer, DB.ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     user = DB.relationship("User", backref="wallets")
 
-    def __init__(self, address: str) -> None:
+    def __init__(self, xpub: str) -> None:
         """
         Initialize a Wallet instance.
 
         Args:
-            address (str): The cryptocurrency wallet address.
+            xpub (str): The hash of the extended public key.
         """
         self.user_id = current_user.id
-        self.address = address
+        self._xpub = self.encrypt_xpub(xpub)
+        self.xpub_hash = self.hash_xpub(xpub)
 
     def __repr__(self) -> str:
         """
@@ -170,9 +175,79 @@ class Wallet(DB.Model):
         return self._repr(
             id=self.id,
             uuid=self.uuid,
-            address=self.address,
             user=self.user,
         )
+
+    @property
+    def xpub(self) -> str:
+        """
+        Decrypt and return the xpub.
+
+        Returns:
+            str: The decrypted extended public key.
+        """
+        return self.decrypt_xpub(self._xpub)
+
+    @classmethod
+    def get(cls, xpub: str) -> query.Query:
+        """
+        Retrieve wallets based on provided filters.
+
+        Args:
+            xpub (str): The extended public key to filter by.
+
+        Returns:
+            query.Query: A SQLAlchemy query object with the applied filters.
+        """
+        xpub_hash = cls.hash_xpub(xpub)
+        return cls.query.filter(
+            cls.user_id == current_user.id,
+            cls.xpub_hash == xpub_hash,
+        )
+
+    def encrypt_xpub(self, xpub: str) -> str:
+        """
+        Encrypt the xpub using the encryption key.
+
+        Args:
+            xpub (str): The extended public key to encrypt.
+
+        Returns:
+            str: The encrypted extended public key.
+        """
+        encryption_key = config.config.ENCRYPTION_KEY
+
+        cipher = Fernet(encryption_key.encode())
+        return cipher.encrypt(xpub.encode()).decode()
+
+    def decrypt_xpub(self, encrypted_xpub: str) -> str:
+        """
+        Decrypt the xpub using the encryption key.
+
+        Args:
+            encrypted_xpub (str): The encrypted extended public key to decrypt.
+
+        Returns:
+            str: The decrypted extended public key.
+        """
+        encryption_key = config.config.ENCRYPTION_KEY
+
+        cipher = Fernet(encryption_key.encode())
+        return cipher.decrypt(encrypted_xpub.encode()).decode()
+
+    @staticmethod
+    def hash_xpub(xpub: str) -> str:
+        """
+        Hash the xpub using SHA-512.
+
+        Args:
+            xpub (str): The xpub to hash.
+
+        Returns:
+            str: The hashed xpub.
+        """
+        # Argon2 is not suitable for this purpose due to its deterministic.
+        return hashlib.sha512(xpub.encode()).hexdigest()
 
 
 class Report(DB.Model):

@@ -4,7 +4,6 @@ import config
 from app import models
 from flask_jwt_extended import JWTManager  # type: ignore
 
-
 # JWT configuration for token management
 jwt = JWTManager()
 
