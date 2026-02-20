@@ -57,4 +57,5 @@ class config:
 
     # Wallet api configuration
     WALLET_API_URL = WALLET_API_URL
-    WALLET_API_TIMEOUT = timedelta(seconds=10)
+    WALLET_API_TIMEOUT = 10  # seconds
+    NUM_ADDRESSES_TO_DERIVE = 25

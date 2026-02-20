@@ -76,6 +76,34 @@ def retrieve_wallet(uuid: str) -> flask.make_response:
     )
 
 
+def _fetch_address_chain_stats(address: str) -> tuple[int, int] | None:
+    """
+    Fetch chain stats for a single address.
+
+    Args:
+        address: A wallet address.
+
+    Returns:
+        Tuple of (received_satoshis, sent_satoshis) or None if error.
+    """
+    try:
+        response = requests.get(
+            f"{current_app.config['WALLET_API_URL']}{address}",
+            timeout=current_app.config["WALLET_API_TIMEOUT"],
+        )
+        response.raise_for_status()
+
+        data = response.json()
+        chain_stats = data.get("chain_stats", {})
+
+        if "funded_txo_sum" in chain_stats and "spent_txo_sum" in chain_stats:
+            return (chain_stats["funded_txo_sum"], chain_stats["spent_txo_sum"])
+    except (requests.RequestException, ValueError) as e:
+        pass
+
+    return None
+
+
 def _fetch_wallet_data(addresses: list[str]) -> dict:
     """
     Fetch and aggregate wallet data from external API.
@@ -86,32 +114,21 @@ def _fetch_wallet_data(addresses: list[str]) -> dict:
     Returns:
         dict: Wallet financial metrics in BTC (balance, received, sent).
     """
-    total_received_satoshis = 0
-    total_sent_satoshis = 0
-    for address in addresses:
-        try:
-            response = requests.get(
-                f"{current_app.config['WALLET_API_URL']}{address}",
-                timeout=current_app.config["WALLET_API_TIMEOUT"],
-            )
-            response.raise_for_status()
+    # Fetch all chain stats, filter out None values
+    chain_stats_list = [
+        stats
+        for stats in map(_fetch_address_chain_stats, addresses)
+        if stats is not None
+    ]
 
-            data = response.json()
-            chain_stats = data.get("chain_stats", {})
-
-            # Only aggregate if required chain stats keys are present
-            if "funded_txo_sum" in chain_stats and "spent_txo_sum" in chain_stats:
-                total_received_satoshis += chain_stats["funded_txo_sum"]
-                total_sent_satoshis += chain_stats["spent_txo_sum"]
-
-        except (requests.RequestException, ValueError):
-            # Network/HTTP errors or JSON decode errors - continue to next address
-            continue
+    # Aggregate using sum() - more pythonic than manual loops
+    total_received = sum(received for received, _ in chain_stats_list)
+    total_sent = sum(sent for _, sent in chain_stats_list)
 
     return {
-        "balance": _satoshis_to_btc(total_received_satoshis - total_sent_satoshis),
-        "received": _satoshis_to_btc(total_received_satoshis),
-        "sent": _satoshis_to_btc(total_sent_satoshis),
+        "balance": _satoshis_to_btc(total_received - total_sent),
+        "received": _satoshis_to_btc(total_received),
+        "sent": _satoshis_to_btc(total_sent),
     }
 
 
@@ -125,8 +142,8 @@ def _fetch_wallet_transactions(addresses: list[str]) -> list[dict]:
     Returns:
         list[dict]: A list of transactions with details.
     """
-    all_txs = {}
     addresses_set = set(addresses)
+    all_txs = {}
 
     for address in addresses:
         try:
@@ -138,64 +155,87 @@ def _fetch_wallet_transactions(addresses: list[str]) -> list[dict]:
 
             transactions = response.json()
             for transaction in transactions:
-                transaction_id = transaction.get("txid")
-
-                if transaction_id in all_txs:
-                    # Skip if transaction already processed
+                if (transaction_id := transaction.get("txid")) in all_txs:
                     continue
 
                 timestamp = transaction.get("status", {}).get("block_time")
 
-                # Calculate net amount and determine transaction type
-                wallet_sent_satoshis = 0
-                wallet_received_satoshis = 0
-                first_external_from = None
-                first_external_to = None
-                my_address = None
+                inputs = transaction.get("vin", [])
+                outputs = transaction.get("vout", [])
 
-                # Inputs (from)
-                for vin in transaction.get("vin", []):
-                    addr = vin.get("prevout", {}).get("scriptpubkey_address")
-                    amount = vin.get("prevout", {}).get("value", 0)
+                wallet_sent_satoshis = sum(
+                    vin.get("prevout", {}).get("value", 0)
+                    for vin in inputs
+                    if vin.get("prevout", {}).get("scriptpubkey_address")
+                    in addresses_set
+                )
 
-                    if addr:
-                        if addr in addresses_set:
-                            wallet_sent_satoshis += amount
-                            if not my_address:
-                                my_address = addr
-                        elif not first_external_from:
-                            first_external_from = addr
+                wallet_received_satoshis = sum(
+                    vout.get("value", 0)
+                    for vout in outputs
+                    if vout.get("scriptpubkey_address") in addresses_set
+                )
 
-                # Outputs (to)
-                for vout in transaction.get("vout", []):
-                    addr = vout.get("scriptpubkey_address")
-                    amount = vout.get("value", 0)
+                first_external_from = next(
+                    (
+                        vin.get("prevout", {}).get("scriptpubkey_address")
+                        for vin in inputs
+                        if vin.get("prevout", {}).get("scriptpubkey_address")
+                        not in addresses_set
+                    ),
+                    "Unknown",
+                )
 
-                    if addr:
-                        if addr in addresses_set:
-                            wallet_received_satoshis += amount
-                            if not my_address:
-                                my_address = addr
-                        elif not first_external_to:
-                            first_external_to = addr
+                first_external_to = next(
+                    (
+                        vout.get("scriptpubkey_address")
+                        for vout in outputs
+                        if vout.get("scriptpubkey_address") not in addresses_set
+                    ),
+                    "Unknown",
+                )
 
-                # Determine transaction type and net amount
                 net = wallet_received_satoshis - wallet_sent_satoshis
                 if net > 0:
                     tx_type = "received"
                     amount_satoshis = wallet_received_satoshis
-                    from_addr = first_external_from or "Unknown"
-                    to_addr = my_address
+                    from_addr = first_external_from
+                    to_addr = next(
+                        (
+                            vout.get("scriptpubkey_address")
+                            for vout in outputs
+                            if vout.get("scriptpubkey_address") in addresses_set
+                        ),
+                        "Unknown",
+                    )
                 elif net < 0:
                     tx_type = "sent"
                     amount_satoshis = abs(net)
-                    from_addr = my_address
-                    to_addr = first_external_to or "Unknown"
+                    from_addr = next(
+                        (
+                            vin.get("prevout", {}).get("scriptpubkey_address")
+                            for vin in inputs
+                            if vin.get("prevout", {}).get("scriptpubkey_address")
+                            in addresses_set
+                        ),
+                        "Unknown",
+                    )
+                    to_addr = first_external_to
                 else:
                     tx_type = "internal"
                     amount_satoshis = wallet_received_satoshis
-                    from_addr = my_address
-                    to_addr = my_address
+                    from_addr = to_addr = next(
+                        (
+                            addr
+                            for addr in addresses_set
+                            if addr
+                            in [
+                                vin.get("prevout", {}).get("scriptpubkey_address")
+                                for vin in inputs
+                            ]
+                        ),
+                        "Unknown",
+                    )
 
                 all_txs[transaction_id] = {
                     "uuid": transaction_id,
@@ -278,13 +318,11 @@ def _get_addresses_from_xpub(xpub: str) -> list[str]:
     """
     try:
         key = HDKey(xpub)
-
-        addresses = []
-        for i in range(2):
-            child = key.subkey_for_path(f"0/{i}")
-            addresses.append(child.address(encoding="bech32"))
-
-        return addresses
+        num_addresses = current_app.config.get("NUM_ADDRESSES_TO_DERIVE", 20)
+        return [
+            key.subkey_for_path(f"0/{i}").address(encoding="bech32")
+            for i in range(num_addresses)
+        ]
     except Exception:
         return []
 
