@@ -51,158 +51,182 @@ def retrieve_wallet(uuid: str) -> flask.make_response:
         # Check if the wallet exists for the user
         return flask.make_response({"msg": "Invalid wallet."}, HTTPStatus.NOT_FOUND)
 
-    wallet_data, error_response = _fetch_wallet_data(wallet.xpub)
-    if error_response:
-        # Check if there was an error fetching wallet data
-        return error_response
+    addresses = _get_addresses_from_xpub(wallet.xpub)
+    if not addresses:
+        # Check if xpub is valid by trying to derive addresses
+        return flask.make_response(
+            {"msg": "Invalid extended public key."}, HTTPStatus.BAD_REQUEST
+        )
 
-    # wallet_txs, error_response = _fetch_wallet_txs(wallet.address)
-    # if error_response:
-    #     # Check if there was an error fetching transactions
-    #     return error_response
+    wallet_data = _fetch_wallet_data(addresses)
+    wallet_txs = _fetch_wallet_transactions(addresses)
 
     return flask.make_response(
         {
             "msg": "OK",
-            # "wallet": {
-            #     "uuid": wallet.uuid,
-            #     "address": wallet.address,
-            #     "total_received": wallet_data["total_received"],
-            #     "total_sent": wallet_data["total_sent"],
-            #     "current_balance": wallet_data["current_balance"],
-            #     "transactions": wallet_txs,
-            # },
+            "wallet": {
+                "uuid": wallet.uuid,
+                "total_received": wallet_data["received"],
+                "total_sent": wallet_data["sent"],
+                "current_balance": wallet_data["balance"],
+                "transactions": wallet_txs,
+            },
         },
         HTTPStatus.OK,
     )
 
 
-def _fetch_wallet_data(xpub: str) -> tuple[dict, flask.make_response]:
+def _fetch_wallet_data(addresses: list[str]) -> dict:
     """
-    Parse wallet data from the external API response.
+    Fetch and aggregate wallet data from external API.
 
     Args:
-        xpub (str): The wallet xpub.
+        addresses: List of wallet addresses to aggregate.
 
     Returns:
-        tuple: A tuple containing the parsed data dictionary and a Flask response object in case of error.
+        dict: Wallet financial metrics in BTC (balance, received, sent).
     """
-    try:
-        response = requests.get(
-            f"{current_app.config['WALLET_SERVICE_URL']}/dashboards/xpub/{xpub}",
-        )
+    total_received_satoshis = 0
+    total_sent_satoshis = 0
+    for address in addresses:
+        try:
+            response = requests.get(
+                f"{current_app.config['WALLET_API_URL']}{address}",
+                timeout=current_app.config["WALLET_API_TIMEOUT"],
+            )
+            response.raise_for_status()
 
-    except requests.exceptions.Timeout:
-        return None, flask.make_response(
-            {"msg": "Wallet service timeout."}, HTTPStatus.GATEWAY_TIMEOUT
-        )
+            data = response.json()
+            chain_stats = data.get("chain_stats", {})
 
-    except requests.exceptions.RequestException as e:
-        return None, flask.make_response(
-            {"msg": "Failed to retrieve wallet information."},
-            HTTPStatus.BAD_GATEWAY,
-        )
+            # Only aggregate if required chain stats keys are present
+            if "funded_txo_sum" in chain_stats and "spent_txo_sum" in chain_stats:
+                total_received_satoshis += chain_stats["funded_txo_sum"]
+                total_sent_satoshis += chain_stats["spent_txo_sum"]
 
-    data = response.json()
+        except (requests.RequestException, ValueError):
+            # Network/HTTP errors or JSON decode errors - continue to next address
+            continue
 
-    # if data.status_code != HTTPStatus.OK:
-    #     return None, flask.make_response(
-    #         {"msg": "Invalid wallet xpub."}, HTTPStatus.BAD_REQUEST
-    #     )
-
-    # wallet_data = data.get("data", {}).get(xpub, {})
-
-    # address_data = wallet_data.get("address", {})
-    # balance_satoshis = address_data.get("balance", 0)
-    # received_satoshis = address_data.get("received", 0)
-    # spent_satoshis = address_data.get("spent", 0)
-
-    # # Parsear transacciones
-    # transactions = wallet_data.get("transactions", [])
-    # parsed_txs = []
-
-    # for tx_hash in transactions[:20]:  # Limitar a las últimas 20
-    #     tx_detail = _fetch_transaction_details(tx_hash)
-    #     if tx_detail:
-    #         parsed_txs.append(tx_detail)
-
-    # # Convert satoshis to BTC
-    # total_received_btc = received_satoshis / SATOSHIS_PER_BTC
-    # total_sent_btc = spent_satoshis / SATOSHIS_PER_BTC
-    # current_balance_btc = balance_satoshis / SATOSHIS_PER_BTC
-
-    # data = {
-    #     "total_received": round(total_received_btc, 8),  # Bitcoin has 8 decimals
-    #     "total_sent_btc": round(total_sent_btc, 8),
-    #     "current_balance_btc": round(current_balance_btc, 8),
-    # }
-
-    data = {"test": "data"}
-
-    return data, None
+    return {
+        "balance": _satoshis_to_btc(total_received_satoshis - total_sent_satoshis),
+        "received": _satoshis_to_btc(total_received_satoshis),
+        "sent": _satoshis_to_btc(total_sent_satoshis),
+    }
 
 
-# def _fetch_wallet_txs(address: str) -> tuple[list[dict], flask.make_response]:
-#     """
-#     Fetch and parse wallet transactions from the external API.
+def _fetch_wallet_transactions(addresses: list[str]) -> list[dict]:
+    """
+    Fetch and parse wallet transactions - Ledger Live style (simplified view).
 
-#     Args:
-#         address (str): The wallet address.
+    Args:
+        addresses: List of wallet addresses.
 
-#     Returns:
-#         tuple: A tuple containing a list of transaction dictionaries and a Flask response object in case of error.
-#     """
-#     try:
-#         response = requests.get(
-#             f"{current_app.config['WALLET_SERVICE_URL']}/address/{address}/txs"
-#         )
+    Returns:
+        list[dict]: A list of transactions with details.
+    """
+    all_txs = {}
+    addresses_set = set(addresses)
 
-#     except requests.exceptions.Timeout:
-#         return None, flask.make_response(
-#             {"msg": "Wallet service timeout."}, HTTPStatus.GATEWAY_TIMEOUT
-#         )
+    for address in addresses:
+        try:
+            response = requests.get(
+                f"{current_app.config['WALLET_API_URL']}{address}/txs",
+                timeout=current_app.config["WALLET_API_TIMEOUT"],
+            )
+            response.raise_for_status()
 
-#     except requests.exceptions.RequestException as e:
-#         return None, flask.make_response(
-#             {"msg": "Failed to retrieve wallet transactions."},
-#             HTTPStatus.BAD_GATEWAY,
-#         )
+            transactions = response.json()
+            for transaction in transactions:
+                transaction_id = transaction.get("txid")
 
-#     txs_data = response.json()
+                if transaction_id in all_txs:
+                    # Skip if transaction already processed
+                    continue
 
-#     transactions = []
-#     for tx in txs_data:
-#         # Calculate BTC received in this transaction for this address
-#         btc_received = 0
-#         btc_sent = 0
+                timestamp = transaction.get("status", {}).get("block_time")
 
-#         # Check outputs (vout) to see what we received
-#         for vout in tx.get("vout", []):
-#             if vout.get("scriptpubkey_address") == address:
-#                 btc_received += vout.get("value", 0)
+                # Calculate net amount and determine transaction type
+                wallet_sent_satoshis = 0
+                wallet_received_satoshis = 0
+                first_external_from = None
+                first_external_to = None
+                my_address = None
 
-#         # Check inputs (vin) to see what we sent
-#         for vin in tx.get("vin", []):
-#             if vin.get("prevout", {}).get("scriptpubkey_address") == address:
-#                 btc_sent += vin.get("prevout", {}).get("value", 0)
+                # Inputs (from)
+                for vin in transaction.get("vin", []):
+                    addr = vin.get("prevout", {}).get("scriptpubkey_address")
+                    amount = vin.get("prevout", {}).get("value", 0)
 
-#         # Net amount (positive = received, negative = sent)
-#         net_amount = btc_received - btc_sent
+                    if addr:
+                        if addr in addresses_set:
+                            wallet_sent_satoshis += amount
+                            if not my_address:
+                                my_address = addr
+                        elif not first_external_from:
+                            first_external_from = addr
 
-#         transactions.append(
-#             {
-#                 "txid": tx.get("txid"),
-#                 "confirmed": tx.get("status", {}).get("confirmed", False),
-#                 "block_height": tx.get("status", {}).get("block_height"),
-#                 "timestamp": tx.get("status", {}).get("block_time"),
-#                 "btc_received": btc_received / SATOSHIS_PER_BTC,
-#                 "btc_sent": btc_sent / SATOSHIS_PER_BTC,
-#                 "net_amount": net_amount / SATOSHIS_PER_BTC,
-#                 "fee": tx.get("fee", 0) / SATOSHIS_PER_BTC,
-#             }
-#         )
+                # Outputs (to)
+                for vout in transaction.get("vout", []):
+                    addr = vout.get("scriptpubkey_address")
+                    amount = vout.get("value", 0)
 
-#     return transactions, None
+                    if addr:
+                        if addr in addresses_set:
+                            wallet_received_satoshis += amount
+                            if not my_address:
+                                my_address = addr
+                        elif not first_external_to:
+                            first_external_to = addr
+
+                # Determine transaction type and net amount
+                net = wallet_received_satoshis - wallet_sent_satoshis
+                if net > 0:
+                    tx_type = "received"
+                    amount_satoshis = wallet_received_satoshis
+                    from_addr = first_external_from or "Unknown"
+                    to_addr = my_address
+                elif net < 0:
+                    tx_type = "sent"
+                    amount_satoshis = abs(net)
+                    from_addr = my_address
+                    to_addr = first_external_to or "Unknown"
+                else:
+                    tx_type = "internal"
+                    amount_satoshis = wallet_received_satoshis
+                    from_addr = my_address
+                    to_addr = my_address
+
+                all_txs[transaction_id] = {
+                    "uuid": transaction_id,
+                    "type": tx_type,
+                    "date": timestamp,
+                    "confirmed": transaction.get("status", {}).get("confirmed", False),
+                    "amount": _satoshis_to_btc(amount_satoshis),
+                    "fee": _satoshis_to_btc(transaction.get("fee", 0)),
+                    "origin_address": from_addr,
+                    "destination_address": to_addr,
+                }
+
+        except (requests.RequestException, ValueError):
+            # Network/HTTP errors or JSON decode errors - continue to next address
+            continue
+
+    # Sort transactions by date, newest first
+    return sorted(all_txs.values(), key=lambda x: x["date"], reverse=True)
+
+
+def _satoshis_to_btc(satoshis: int | float) -> float:
+    """
+    Convert satoshis to BTC with 8 decimal places.
+
+    Args:
+        satoshis: Amount in satoshis.
+
+    Returns:
+        float: Amount in BTC.
+    """
+    return round(satoshis / SATOSHIS_PER_BTC, 8)
 
 
 def add_wallet(xpub: str) -> flask.make_response:
