@@ -4,6 +4,10 @@ cheatsheet.txt
 # ---------- API files ----------
 /api/.env
 
+# ---------- MCP files ----------
+/mcp/.env
+/mcp/files/*
+
 # ---------- Mobile files ----------
 
 # dependencies

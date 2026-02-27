@@ -147,7 +147,7 @@ def refresh_token() -> flask.make_response:
         # Check if user is locked
         return flask.make_response({"msg": "User is locked"}, HTTPStatus.LOCKED)
 
-    # Store the access token revoked in Redis with an expiration time
+    # Store the refresh token revoked in Redis with an expiration time
     refresh_token_expires = current_app.config["JWT_REFRESH_TOKEN_EXPIRES"]
     jwt_redis_blocklist.set(refresh_jti, "refresh", ex=refresh_token_expires)
 
