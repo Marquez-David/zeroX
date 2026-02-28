@@ -17,9 +17,7 @@ def mcp_login(email: str, password: str) -> dict:
     Returns:
         dict: A dictionary with the login result.
     """
-    data = utils.request(
-        "POST", "/auth/login", json={"email": email, "password": password}
-    )
+    data = utils.request("POST", "/login", json={"email": email, "password": password})
     if "access_token" not in data:
         return {"msg": "KO", "detail": data}
 
@@ -32,7 +30,7 @@ def mcp_logout() -> dict:
     """Logout user from API. Clears the current session tokens."""
     data = utils.request(
         "POST",
-        "/auth/logout",
+        "/logout",
         headers=utils.auth_header(),
         json={"refresh_token": utils.get_refresh_token()},
     )
@@ -108,6 +106,39 @@ def mcp_delete_report(uuid: str) -> dict:
         dict: The JSON response from the API, or an error dictionary if the request fails.
     """
     return utils.request("DELETE", f"/reports/{uuid}", headers=utils.auth_header())
+
+
+@mcp.tool()
+@utils.with_token_refresh
+def change_category(uuid: str, category: str) -> dict:
+    """
+    Changes the category of a specific operation.
+
+    Args:
+        uuid (str): The UUID of the operation to change.
+        category (str): The new category to assign to the operation.
+
+    Returns:
+        dict: The JSON response from the API, or an error dictionary if the request fails.
+    """
+    return utils.request(
+        "PATCH",
+        f"/operations/{uuid}",
+        headers=utils.auth_header(),
+        json={"category": category},
+    )
+
+
+@mcp.tool()
+@utils.with_token_refresh
+def retrieve_categories() -> dict:
+    """
+    Retrieves all categories from the API.
+
+    Returns:
+        dict: The JSON response from the API, or an error dictionary if the request fails.
+    """
+    return utils.request("GET", "/categories", headers=utils.auth_header())
 
 
 if __name__ == "__main__":
