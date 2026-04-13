@@ -71,10 +71,6 @@ pip install -r requirements.txt
 python mcp_server.py
 ```
 
-## Documentation
-
-See [`docs/architecture.html`](docs/architecture.html) for detailed architecture, models, endpoints, security, infrastructure, and deployment documentation.
-
 ## License
 
 [MIT](LICENSE) &copy; 2025 David Márquez Mínguez
