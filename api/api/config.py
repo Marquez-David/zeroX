@@ -26,6 +26,9 @@ JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY")
 # Blockstream API URL
 WALLET_API_URL = os.environ.get("WALLET_API_URL", "https://mempool.space/api/address/")
 
+# CORS allowed origins
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS").split(",")
+
 
 class config:
     """Configuration class for the Flask application."""
@@ -59,3 +62,6 @@ class config:
     WALLET_API_URL = WALLET_API_URL
     WALLET_API_TIMEOUT = 10  # seconds
     NUM_ADDRESSES_TO_DERIVE = 25
+
+    # CORS configuration
+    CORS_ORIGINS = ALLOWED_ORIGINS
