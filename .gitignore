@@ -17,7 +17,8 @@ cheatsheet.txt
 /mobile/.expo/
 /mobile/dist/
 web-build/
-expo-env.d.ts
+/mobile/expo-env.d.ts
+/mobile/.vscode/
 
 # Native
 /mobile/.kotlin/
@@ -46,4 +47,5 @@ expo-env.d.ts
 # typescript
 /mobile/*.tsbuildinfo
 
-/mobile/expo-env.d.ts
+# Claude files
+/CLAUDE.md
