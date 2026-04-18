@@ -44,6 +44,29 @@ export const profileStrings = {
   logout: 'Log out',
 };
 
+export const reportStrings = {
+  income: 'Income',
+  expenses: 'Expenses',
+  balance: 'Balance',
+  transactions: 'Transactions',
+  noTransactions: 'No transactions in this report.',
+};
+
+export const transactionStrings = {
+  title: 'Transaction info',
+  type: 'Type',
+  concept: 'Concept',
+  date: 'Date',
+  amount: 'Amount',
+  category: 'Category',
+  reference: 'Reference',
+  income: 'Income',
+  expense: 'Expense',
+  save: 'Save',
+  pickCategory: 'Select a category',
+  saveError: 'Could not update the category',
+};
+
 export const verifyStrings = {
   title: 'Check your email',
   subtitle: 'We sent a 6-digit code to',

@@ -37,12 +37,17 @@ export interface ReportDetail {
 
 // === Operations ===
 
+export interface OperationCategory {
+  uuid: string;
+  name: string;
+}
+
 export interface Operation {
   uuid: string;
   amount: number;
   date: string;
   concept: string;
-  category: string;
+  category: OperationCategory;
 }
 
 // === Categories ===

@@ -7,6 +7,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 
 import BalanceHeader from '@components/CustomCards/BalanceHeader';
 import SpendingProgress from '@components/CustomCards/SpendingProgress';
@@ -41,8 +42,7 @@ const HomeScreen = () => {
   }, [hasInitialized, availableYears]);
 
   const navigateToReport = (uuid: string) => {
-    // TODO: wire up once app/(app)/report/[id].tsx exists (Task 10).
-    console.log('open report', uuid);
+    router.push({ pathname: '/report/[id]', params: { id: uuid } });
   };
 
   return (

@@ -59,6 +59,10 @@ const TabsLayout = () => (
         ),
       }}
     />
+    <Tabs.Screen
+      name='report/[id]'
+      options={{ href: null }}
+    />
   </Tabs>
 );
 
