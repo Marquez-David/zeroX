@@ -29,7 +29,6 @@ def retrieve_user() -> flask.make_response:
                 "uuid": user.uuid,
                 "email": user.email,
                 "username": user.username,
-                "created_at": user.created_at.isoformat(),
             },
         },
         HTTPStatus.OK,
