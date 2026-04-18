@@ -62,7 +62,10 @@ def retrieve_report(uuid: str) -> flask.make_response:
                         "amount": operation.amount,
                         "date": operation.date,
                         "concept": operation.concept,
-                        "category": operation.category.name,
+                        "category": {
+                            "uuid": operation.category.uuid,
+                            "name": operation.category.name,
+                        },
                     }
                     for operation in report.operations
                 ],
