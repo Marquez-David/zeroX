@@ -42,6 +42,7 @@ web-build/
 /mobile/*.pem
 
 # local env files
+/mobile/.env
 /mobile/.env*.local
 
 # typescript
