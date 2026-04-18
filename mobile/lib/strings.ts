@@ -26,6 +26,24 @@ export const registerStrings = {
   switchCta: 'Sign in',
 };
 
+export const homeStrings = {
+  totalBalance: 'Total balance',
+  allYears: 'All',
+  incomeVsExpenses: 'Income vs expenses',
+  income: 'Income',
+  expenses: 'Expenses',
+  transferHistory: 'Reports history',
+  seeAll: 'See all',
+  operations: 'operations',
+  emptyTitle: 'No reports yet',
+  emptySubtitle: 'Upload your first report from the Upload tab.',
+};
+
+export const profileStrings = {
+  title: 'Profile',
+  logout: 'Log out',
+};
+
 export const verifyStrings = {
   title: 'Check your email',
   subtitle: 'We sent a 6-digit code to',
