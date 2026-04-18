@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -45,10 +46,17 @@ const HomeScreen = () => {
     router.push({ pathname: '/report/[id]', params: { id: uuid } });
   };
 
+  const HOME_REPORTS_PREVIEW = 3;
+
+  const previewReports = useMemo(
+    () => filteredReports.slice(0, HOME_REPORTS_PREVIEW),
+    [filteredReports],
+  );
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <FlatList
-        data={filteredReports}
+        data={previewReports}
         keyExtractor={(item) => item.uuid}
         ListHeaderComponent={
           <>
@@ -67,7 +75,12 @@ const HomeScreen = () => {
               <Text style={styles.sectionTitle}>
                 {homeStrings.transferHistory}
               </Text>
-              <Text style={styles.seeAll}>{homeStrings.seeAll}</Text>
+              <TouchableOpacity
+                onPress={() => router.push('/reports')}
+                hitSlop={8}
+              >
+                <Text style={styles.seeAll}>{homeStrings.seeAll}</Text>
+              </TouchableOpacity>
             </View>
           </>
         }

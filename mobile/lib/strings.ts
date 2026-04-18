@@ -33,7 +33,7 @@ export const homeStrings = {
   income: 'Income',
   expenses: 'Expenses',
   transferHistory: 'Reports history',
-  seeAll: 'See all',
+  seeAll: 'View details',
   operations: 'operations',
   emptyTitle: 'No reports yet',
   emptySubtitle: 'Upload your first report from the Upload tab.',
@@ -50,6 +50,14 @@ export const reportStrings = {
   balance: 'Balance',
   transactions: 'Transactions',
   noTransactions: 'No transactions in this report.',
+};
+
+export const reportsListStrings = {
+  title: 'Reports',
+  allYears: 'All',
+  evolution: 'Balance evolution',
+  emptyTitle: 'No reports yet',
+  emptySubtitle: 'Upload one to see the evolution of your balance.',
 };
 
 export const transactionStrings = {

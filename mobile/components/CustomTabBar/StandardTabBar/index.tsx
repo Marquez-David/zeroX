@@ -6,42 +6,33 @@ import styles from './styles';
 
 import colors from '@lib/colors';
 
-const TAB_ROUTE_NAMES = ['home', 'categories', 'upload', 'calendar', 'profile'];
-
 const CustomTabBar = ({
   state,
   descriptors,
   navigation,
-}: BottomTabBarProps) => {
-  const currentRoute = state.routes[state.index];
-  if (!TAB_ROUTE_NAMES.includes(currentRoute.name)) return null;
+}: BottomTabBarProps) => (
+  <View style={styles.container}>
+    {state.routes.map((route, index) => {
+      const { options } = descriptors[route.key];
+      const isFocused = state.index === index;
 
-  return (
-    <View style={styles.container}>
-      {state.routes.map((route, index) => {
-        if (!TAB_ROUTE_NAMES.includes(route.name)) return null;
-
-        const { options } = descriptors[route.key];
-        const isFocused = state.index === index;
-
-        const label = options.tabBarLabel as string;
-        const icon = options.tabBarIcon?.({
-          color: colors.white,
-          size: 24,
-          focused: isFocused,
-        });
-        return isFocused ? (
-          <FocusedTabBarButton key={route.key} icon={icon} label={label} />
-        ) : (
-          <TabBarButton
-            key={route.key}
-            icon={icon}
-            onPress={() => navigation.navigate(route.name)}
-          />
-        );
-      })}
-    </View>
-  );
-};
+      const label = options.tabBarLabel as string;
+      const icon = options.tabBarIcon?.({
+        color: colors.white,
+        size: 24,
+        focused: isFocused,
+      });
+      return isFocused ? (
+        <FocusedTabBarButton key={route.key} icon={icon} label={label} />
+      ) : (
+        <TabBarButton
+          key={route.key}
+          icon={icon}
+          onPress={() => navigation.navigate(route.name)}
+        />
+      );
+    })}
+  </View>
+);
 
 export default CustomTabBar;
