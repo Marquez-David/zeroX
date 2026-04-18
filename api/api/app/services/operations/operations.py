@@ -30,7 +30,10 @@ def retrieve_operation(uuid: str) -> flask.make_response:
                 "amount": operation.amount,
                 "date": operation.date,
                 "description": operation.description,
-                "category": operation.category.name,
+                "category": {
+                    "uuid": operation.category.uuid,
+                    "name": operation.category.name,
+                },
             },
         },
         HTTPStatus.OK,
