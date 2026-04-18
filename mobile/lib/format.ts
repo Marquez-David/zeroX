@@ -62,8 +62,37 @@ export function shortId(uuid: string): string {
   return uuid.split('-')[0].toUpperCase();
 }
 
+const normalizeCategory = (name: string) =>
+  name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+
+// Explicit palette for the 13 known categories so each gets a distinctive
+// colour (hash modulo 8 would collide). Falls back to hash for anything not
+// in the map.
+const CATEGORY_COLOR_MAP: Record<string, string> = {
+  vivienda: '#6D28D9',
+  'servicios basicos': '#F59E0B',
+  alimentacion: '#10B981',
+  transporte: '#3B82F6',
+  salud: '#EF4444',
+  educacion: '#8B5CF6',
+  'ahorro e inversion': '#F97316',
+  'entretenimiento y ocio': '#EC4899',
+  'ropa y cuidado personal': '#06B6D4',
+  'gastos varios': '#64748B',
+  transferencias: '#84CC16',
+  'viajes y billetes': '#22D3EE',
+  'compras online': '#A855F7',
+};
+
 export function categoryColor(name: string | undefined | null): string {
   if (!name) return categoryColors[0];
+  const key = normalizeCategory(name);
+  const mapped = CATEGORY_COLOR_MAP[key];
+  if (mapped) return mapped;
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
@@ -71,12 +100,13 @@ export function categoryColor(name: string | undefined | null): string {
   return categoryColors[Math.abs(hash) % categoryColors.length];
 }
 
-const normalizeCategory = (name: string) =>
-  name
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .trim();
+export function withOpacity(hex: string, opacity: number): string {
+  const clean = hex.replace('#', '');
+  const r = parseInt(clean.slice(0, 2), 16);
+  const g = parseInt(clean.slice(2, 4), 16);
+  const b = parseInt(clean.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+}
 
 const CATEGORY_ICONS: Record<string, LucideIcon> = {
   vivienda: Sofa,

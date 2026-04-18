@@ -8,6 +8,7 @@ const AppLayout = () => (
       <Stack.Screen name='(tabs)' />
       <Stack.Screen name='reports' />
       <Stack.Screen name='report/[id]' />
+      <Stack.Screen name='category/[uuid]' />
     </Stack>
   </FiltersProvider>
 );

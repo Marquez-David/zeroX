@@ -52,6 +52,27 @@ export const reportStrings = {
   noTransactions: 'No transactions in this report.',
 };
 
+export const categoriesStrings = {
+  title: 'Categories',
+  allYears: 'All',
+  totalExpenses: 'Total expenses',
+  breakdown: 'Breakdown',
+  operations: 'operations',
+  operation: 'operation',
+  emptyTitle: 'No expenses yet',
+  emptySubtitle: 'Once you upload reports with outgoing operations, the breakdown will show up here.',
+};
+
+export const categoryDetailStrings = {
+  totalSpent: 'Total spent',
+  operations: 'operations',
+  operation: 'operation',
+  average: 'Average',
+  ofTotal: 'Of total',
+  period: 'Period',
+  empty: 'No operations in this category.',
+};
+
 export const reportsListStrings = {
   title: 'Reports',
   allYears: 'All',
