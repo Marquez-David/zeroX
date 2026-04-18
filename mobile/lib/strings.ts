@@ -1,12 +1,42 @@
 export const loginStrings = {
-  googleSignUp: 'Sign up with Google',
-  githubSignUp: 'Sign up with GitHub',
-  emailSignUp: 'Sign up with E-mail',
+  title: 'Welcome',
+  subtitle: 'Sign in to continue tracking your money.',
   email: 'E-mail address',
   password: 'Password',
-  or: 'or',
-  register:
-    'Account creation is currently limited to invited users. Please reach out to an administrator for access.',
+  enter: 'Sign in',
+  loginError: 'Invalid credentials',
+  switchPrompt: "Don't have an account?",
+  switchCta: 'Create one',
+  orSeparator: 'or',
+  googleSignIn: 'Continue with Google',
+  githubSignIn: 'Continue with GitHub',
+};
+
+export const registerStrings = {
+  title: 'Create your\naccount',
+  subtitle: 'A few details and you are in.',
+  email: 'E-mail address',
+  password: 'Password',
+  confirmPassword: 'Confirm password',
+  passwordHint:
+    'Use at least 14 characters mixing letters, numbers and symbols.',
+  submit: 'Create account',
+  registerError: 'Could not create your account',
+  switchPrompt: 'Already have an account?',
+  switchCta: 'Sign in',
+};
+
+export const verifyStrings = {
+  title: 'Check your email',
+  subtitle: 'We sent a 6-digit code to',
+  label: 'Verification code',
+  submit: 'Verify',
+  resendPrompt: "Didn't get the code?",
+  resendCta: 'Resend',
+  resendSent: 'Code sent',
+  changeEmail: 'Use a different email',
+  verifyError: 'Invalid or expired code',
+  successBanner: 'Email verified. You can sign in now.',
 };
 
 export const validationStrings = {
@@ -15,4 +45,8 @@ export const validationStrings = {
   requiredPassword: 'Password is required',
   invalidPassword: 'Password must be at least 14 characters',
   repeatedCharacters: 'Password cannot contain repeated characters',
+  requiredConfirmPassword: 'Please confirm your password',
+  passwordMismatch: 'Passwords do not match',
+  requiredCode: 'Verification code is required',
+  invalidCodeLength: 'Code must be 6 digits',
 };

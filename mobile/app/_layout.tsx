@@ -1,13 +1,14 @@
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { SafeAreaView, StyleSheet, StatusBar } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { QueryClientProvider } from '@tanstack/react-query';
 
 import { SessionProvider, useSession } from '@contexts/auth';
+import { queryClient } from '@lib/queryClient';
 
-import { Slot, Stack } from 'expo-router';
-import StandardHeader from '@components/CustomHeaders/StandardHeader';
-import colors from '@lib/colors';
+import { Stack } from 'expo-router';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -19,52 +20,42 @@ const RootLayout = () => {
     'Inter-Bold': require('@assets/fonts/Inter-Bold.otf'),
   });
 
-  useEffect(() => {
-    if (loaded || error) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded, error]);
-
   if (!loaded && !error) {
     return null;
   }
 
   return (
-    <SafeAreaView style={styles.background}>
-      <SessionProvider>
-        <RootNavigator />
-      </SessionProvider>
-    </SafeAreaView>
+    <QueryClientProvider client={queryClient}>
+      <SafeAreaProvider>
+        <SessionProvider>
+          <StatusBar style='dark' />
+          <RootNavigator />
+        </SessionProvider>
+      </SafeAreaProvider>
+    </QueryClientProvider>
   );
 };
 
 function RootNavigator() {
-  const { session } = useSession();
+  const { session, isLoading } = useSession();
+
+  useEffect(() => {
+    if (!isLoading) SplashScreen.hideAsync();
+  }, [isLoading]);
+
+  if (isLoading) return null;
 
   return (
-    <Stack>
-      <Stack.Protected guard={session}>
-        <Stack.Screen name='(app)' options={{ headerShown: false }} />
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Protected guard={!!session}>
+        <Stack.Screen name='(app)' />
       </Stack.Protected>
 
       <Stack.Protected guard={!session}>
-        <Stack.Screen
-          name='login'
-          options={{ header: () => <StandardHeader /> }}
-        />
+        <Stack.Screen name='login' />
       </Stack.Protected>
     </Stack>
   );
 }
-
-const styles = StyleSheet.create({
-  background: {
-    flex: 1,
-    paddingTop: StatusBar.currentHeight,
-    paddingBottom: StatusBar.currentHeight,
-    paddingHorizontal: 20,
-    backgroundColor: colors.background,
-  },
-});
 
 export default RootLayout;

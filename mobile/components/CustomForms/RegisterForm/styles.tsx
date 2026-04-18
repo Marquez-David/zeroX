@@ -14,6 +14,13 @@ const styles = StyleSheet.create({
     color: colors.error[500],
     textAlign: 'center',
   },
+  passwordHint: {
+    ...typography.caption,
+    marginTop: -spacing.sm,
+    marginBottom: spacing.md,
+    marginLeft: spacing.md,
+    lineHeight: 16,
+  },
   submitButton: {
     marginTop: spacing.md,
   },

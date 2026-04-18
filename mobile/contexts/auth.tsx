@@ -1,44 +1,26 @@
-import { use, createContext, type PropsWithChildren } from 'react';
-import { useState } from 'react';
+import { type PropsWithChildren } from 'react';
 
-const AuthContext = createContext<{
-  signIn: () => void;
-  signOut: () => void;
-  session?: string | null;
-  isLoading: boolean;
-}>({
-  signIn: () => null,
-  signOut: () => null,
-  session: null,
-  isLoading: false,
-});
+import { useCurrentUser } from '@hooks/queries/auth';
 
-// This hook can be used to access the user info.
+/**
+ * Session state derived from the TanStack Query cache. Kept as a hook (rather
+ * than a React context) because the query cache already holds the user and
+ * any consumer can read the same source via `useCurrentUser()`.
+ */
 export function useSession() {
-  const value = use(AuthContext);
-  if (!value) {
-    throw new Error('useSession must be wrapped in a <SessionProvider />');
-  }
-
-  return value;
+  const { data: user, isLoading } = useCurrentUser();
+  return {
+    user: user ?? null,
+    session: user ? 'authenticated' : null,
+    isLoading,
+  };
 }
 
+/**
+ * Kept as a passthrough so consumers can keep wrapping their tree with
+ * <SessionProvider> without changes. Session state now lives in the query
+ * cache, so there is nothing to provide.
+ */
 export function SessionProvider({ children }: PropsWithChildren) {
-  const [session, setSession] = useState(null);
-  return (
-    <AuthContext
-      value={{
-        signIn: () => {
-          setSession('session');
-        },
-        signOut: () => {
-          setSession(null);
-        },
-        session: session,
-        isLoading: false,
-      }}
-    >
-      {children}
-    </AuthContext>
-  );
+  return <>{children}</>;
 }

@@ -2,36 +2,48 @@ import React, { useState } from 'react';
 import { View, Text } from 'react-native';
 import { Formik } from 'formik';
 
-import { loginStrings, validationStrings } from '@lib/strings';
+import { registerStrings, validationStrings } from '@lib/strings';
 
 import FormInput from '@components/CustomInputs/FormInput';
 import PrimaryButton from '@components/CustomButtons/PrimaryButton';
 
 import styles from './styles';
 
-type LoginValues = {
+type RegisterValues = {
   email: string;
   password: string;
+  confirmPassword: string;
 };
 
-type LoginFormProps = {
-  onSubmit: (values: LoginValues) => Promise<void> | void;
+type RegisterFormProps = {
+  onSubmit: (values: RegisterValues) => Promise<void> | void;
   serverError?: string | null;
 };
 
-const validate = (values: LoginValues) => {
-  const errors: Partial<LoginValues> = {};
+const validate = (values: RegisterValues) => {
+  const errors: Partial<RegisterValues> = {};
   if (!values.email) errors.email = validationStrings.requiredEmail;
   else if (!/\S+@\S+\.\S+/.test(values.email))
     errors.email = validationStrings.invalidEmail;
+
   if (!values.password) errors.password = validationStrings.requiredPassword;
+  else if (values.password.length < 14)
+    errors.password = validationStrings.invalidPassword;
+  else if (/(.)\1{2,}/.test(values.password))
+    errors.password = validationStrings.repeatedCharacters;
+
+  if (!values.confirmPassword)
+    errors.confirmPassword = validationStrings.requiredConfirmPassword;
+  else if (values.confirmPassword !== values.password)
+    errors.confirmPassword = validationStrings.passwordMismatch;
+
   return errors;
 };
 
-const LoginForm = ({ onSubmit, serverError }: LoginFormProps) => {
+const RegisterForm = ({ onSubmit, serverError }: RegisterFormProps) => {
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (values: LoginValues) => {
+  const handleSubmit = async (values: RegisterValues) => {
     setLoading(true);
     try {
       await onSubmit(values);
@@ -42,7 +54,7 @@ const LoginForm = ({ onSubmit, serverError }: LoginFormProps) => {
 
   return (
     <Formik
-      initialValues={{ email: '', password: '' }}
+      initialValues={{ email: '', password: '', confirmPassword: '' }}
       validate={validate}
       validateOnBlur={false}
       onSubmit={handleSubmit}
@@ -55,7 +67,7 @@ const LoginForm = ({ onSubmit, serverError }: LoginFormProps) => {
             </View>
           )}
           <FormInput
-            label={loginStrings.email}
+            label={registerStrings.email}
             value={values.email}
             onChangeText={handleChange('email')}
             error={submitCount > 0 ? errors.email : undefined}
@@ -65,16 +77,26 @@ const LoginForm = ({ onSubmit, serverError }: LoginFormProps) => {
             autoComplete='email'
           />
           <FormInput
-            label={loginStrings.password}
+            label={registerStrings.password}
             value={values.password}
             onChangeText={handleChange('password')}
             error={submitCount > 0 ? errors.password : undefined}
             placeholder='••••••••••••••'
             secureEntry
-            autoComplete='password'
+            autoComplete='password-new'
+          />
+          <Text style={styles.passwordHint}>{registerStrings.passwordHint}</Text>
+          <FormInput
+            label={registerStrings.confirmPassword}
+            value={values.confirmPassword}
+            onChangeText={handleChange('confirmPassword')}
+            error={submitCount > 0 ? errors.confirmPassword : undefined}
+            placeholder='••••••••••••••'
+            secureEntry
+            autoComplete='password-new'
           />
           <PrimaryButton
-            title={loginStrings.enter}
+            title={registerStrings.submit}
             onPress={() => handleSubmit()}
             loading={loading}
             style={styles.submitButton}
@@ -85,4 +107,4 @@ const LoginForm = ({ onSubmit, serverError }: LoginFormProps) => {
   );
 };
 
-export default LoginForm;
+export default RegisterForm;

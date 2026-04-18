@@ -1,101 +1,371 @@
-import { View, Text, Image, StyleSheet } from 'react-native';
-import { router } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import {
+  BackHandler,
+  View,
+  Text,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  TouchableOpacity,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { ArrowLeft } from 'lucide-react-native';
 
-import { loginStrings } from '@lib/strings';
-import { GoogleIcon, GitHubIcon } from '@lib/icons';
-import colors from '@lib/colors';
-
+import Logo from '@assets/icons/Logo';
+import GoogleIcon from '@assets/icons/Google';
+import GitHubIcon from '@assets/icons/GitHub';
 import LoginForm from '@components/CustomForms/LoginForm';
-import StandardButton from '@components/CustomButtons/StandardButton';
+import RegisterForm from '@components/CustomForms/RegisterForm';
+import VerifyEmailForm from '@components/CustomForms/VerifyEmailForm';
+import SocialButton from '@components/CustomButtons/SocialButton';
+import {
+  useLoginMutation,
+  useRegisterMutation,
+  useResendVerificationMutation,
+  useVerifyEmailMutation,
+} from '@hooks/queries/auth';
+import { loginStrings, registerStrings, verifyStrings } from '@lib/strings';
+import { colors, radii, shadows, spacing, typography } from '@lib/theme';
 
-import { useSession } from '@contexts/auth';
+type Mode = 'login' | 'register' | 'verify';
 
 const LoginScreen = () => {
-  const loginImage = require('@assets/images/loginImage.webp');
-  const { signIn } = useSession();
+  const loginMutation = useLoginMutation();
+  const registerMutation = useRegisterMutation();
+  const verifyMutation = useVerifyEmailMutation();
+  const resendMutation = useResendVerificationMutation();
+
+  const [mode, setMode] = useState<Mode>('login');
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [infoBanner, setInfoBanner] = useState<string | null>(null);
+  const [pendingEmail, setPendingEmail] = useState<string>('');
+
+  const handleLogin = async (values: { email: string; password: string }) => {
+    setServerError(null);
+    setInfoBanner(null);
+    try {
+      await loginMutation.mutateAsync(values);
+    } catch {
+      setServerError(loginStrings.loginError);
+    }
+  };
+
+  const handleRegister = async (values: {
+    email: string;
+    password: string;
+    confirmPassword: string;
+  }) => {
+    setServerError(null);
+    setInfoBanner(null);
+    try {
+      await registerMutation.mutateAsync(values);
+      setPendingEmail(values.email);
+      setMode('verify');
+    } catch (err) {
+      setServerError(
+        err instanceof Error && err.message
+          ? err.message
+          : registerStrings.registerError,
+      );
+    }
+  };
+
+  const handleVerify = async (values: { code: string }) => {
+    setServerError(null);
+    try {
+      await verifyMutation.mutateAsync({
+        email: pendingEmail,
+        code: values.code,
+      });
+      setInfoBanner(verifyStrings.successBanner);
+      setMode('login');
+    } catch {
+      setServerError(verifyStrings.verifyError);
+    }
+  };
+
+  const handleResend = async () => {
+    await resendMutation.mutateAsync(pendingEmail);
+  };
+
+  const goTo = (next: Mode) => {
+    setServerError(null);
+    setInfoBanner(null);
+    setMode(next);
+  };
+
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (mode === 'verify') {
+        goTo('register');
+        return true;
+      }
+      if (mode === 'register') {
+        goTo('login');
+        return true;
+      }
+      return false;
+    });
+    return () => sub.remove();
+  }, [mode]);
+
+  const copy =
+    mode === 'login'
+      ? loginStrings
+      : mode === 'register'
+        ? registerStrings
+        : null;
+
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <View style={{ flex: 0.55, alignItems: 'center' }}>
-        <Image source={loginImage} style={{ width: '85%', height: '100%' }} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <LoginForm
-          onSubmit={() => {
-            signIn();
-            router.replace('/home');
-          }}
-        />
-        <Text style={styles.whiteBoldText}>{loginStrings.or}</Text>
-        <View style={styles.fade}>
-          <StandardButton
-            button={{ logo: <GoogleIcon />, style: styles.whiteButton }}
-            label={{ text: loginStrings.googleSignUp, style: styles.blackText }}
-            onPress={() => null}
-          />
-        </View>
-        <StandardButton
-          button={{ logo: <GitHubIcon />, style: styles.blackButton }}
-          label={{ text: loginStrings.githubSignUp, style: styles.whiteText }}
-          onPress={() => null}
-        />
-        <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-          <Text style={styles.grayText}>{loginStrings.register}</Text>
-        </View>
-      </View>
+    <View style={styles.root}>
+      <LinearGradient
+        colors={['#FBFAFF', '#FFFFFF', '#F6F4FE']}
+        locations={[0, 0.45, 1]}
+        style={StyleSheet.absoluteFill}
+        pointerEvents='none'
+      />
+      <View style={[styles.blob, styles.blobTop]} pointerEvents='none' />
+      <View style={[styles.blob, styles.blobBottom]} pointerEvents='none' />
+
+      <SafeAreaView style={styles.safeArea}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.flex}
+        >
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps='handled'
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+          >
+            <View style={styles.topSection}>
+              <View style={styles.brandRow}>
+                {mode === 'verify' && (
+                  <TouchableOpacity
+                    onPress={() => goTo('register')}
+                    hitSlop={12}
+                    style={styles.backButton}
+                  >
+                    <ArrowLeft
+                      size={20}
+                      color={colors.text.primary}
+                      strokeWidth={2.5}
+                    />
+                  </TouchableOpacity>
+                )}
+                <View style={styles.brandBadge}>
+                  <Logo width={160} height={34} />
+                </View>
+              </View>
+
+              {mode === 'verify' && (
+                <View style={styles.verifyHeader}>
+                  <Text style={styles.verifyTitle}>{verifyStrings.title}</Text>
+                  <Text style={styles.verifySubtitle}>
+                    {verifyStrings.subtitle}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.middleSection}>
+              {infoBanner && mode === 'login' && (
+                <View style={styles.infoBanner}>
+                  <Text style={styles.infoBannerText}>{infoBanner}</Text>
+                </View>
+              )}
+
+              {mode === 'login' && (
+                <LoginForm onSubmit={handleLogin} serverError={serverError} />
+              )}
+              {mode === 'register' && (
+                <RegisterForm
+                  onSubmit={handleRegister}
+                  serverError={serverError}
+                />
+              )}
+              {mode === 'verify' && (
+                <VerifyEmailForm
+                  email={pendingEmail}
+                  onSubmit={handleVerify}
+                  onResend={handleResend}
+                  onChangeEmail={() => goTo('register')}
+                  serverError={serverError}
+                />
+              )}
+
+              {copy && mode !== 'verify' && (
+                <View style={styles.switchRow}>
+                  <Text style={styles.switchPrompt}>{copy.switchPrompt}</Text>
+                  <TouchableOpacity
+                    onPress={() =>
+                      goTo(mode === 'login' ? 'register' : 'login')
+                    }
+                    hitSlop={8}
+                  >
+                    <Text style={styles.switchCta}>{copy.switchCta}</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {mode === 'login' && (
+                <View style={styles.socialSection}>
+                  <View style={styles.separator}>
+                    <View style={styles.separatorLine} />
+                    <Text style={styles.separatorText}>
+                      {loginStrings.orSeparator}
+                    </Text>
+                    <View style={styles.separatorLine} />
+                  </View>
+
+                  <SocialButton
+                    label={loginStrings.googleSignIn}
+                    icon={<GoogleIcon width={20} height={20} />}
+                    variant='light'
+                    onPress={() => {}}
+                    style={styles.socialButton}
+                  />
+                  <SocialButton
+                    label={loginStrings.githubSignIn}
+                    icon={<GitHubIcon width={22} height={22} />}
+                    variant='dark'
+                    onPress={() => {}}
+                  />
+                </View>
+              )}
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  fade: {
-    borderRadius: 50,
-    shadowColor: colors.gray800,
-    shadowOpacity: 0.1,
-    elevation: 1,
+  root: {
+    flex: 1,
+    backgroundColor: colors.background,
   },
-  whiteButton: {
-    borderRadius: 50,
-    padding: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+  blob: {
+    position: 'absolute',
+    borderRadius: 9999,
+    opacity: 0.55,
+  },
+  blobTop: {
+    top: -140,
+    right: -120,
+    width: 360,
+    height: 360,
+    backgroundColor: colors.primary[100],
+  },
+  blobBottom: {
+    bottom: -160,
+    left: -140,
+    width: 320,
+    height: 320,
+    backgroundColor: '#E0E7FF',
+    opacity: 0.4,
+  },
+  safeArea: { flex: 1 },
+  flex: { flex: 1 },
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: spacing.screenPadding,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.lg,
+  },
+  topSection: {
+    alignItems: 'flex-start',
+  },
+  brandRow: {
     flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: radii.full,
     backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.card,
   },
-  blackButton: {
-    borderRadius: 50,
-    padding: 12,
+  brandBadge: {
+    backgroundColor: colors.primary[600],
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingLeft: -8,
+    ...shadows.primaryButton,
+  },
+  verifyHeader: {
+    marginTop: spacing.xl,
+  },
+  verifyTitle: {
+    ...typography.heading,
+    marginBottom: spacing.xs,
+  },
+  verifySubtitle: {
+    ...typography.bodyRegular,
+  },
+  middleSection: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  infoBanner: {
+    backgroundColor: colors.success[50],
+    borderRadius: radii.md,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  infoBannerText: {
+    ...typography.small,
+    color: colors.success[500],
+    textAlign: 'center',
+  },
+  socialSection: {
+    marginTop: spacing.lg,
+  },
+  separator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginBottom: spacing.md,
+  },
+  separatorLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
+  },
+  separatorText: {
+    ...typography.small,
+    color: colors.text.muted,
+  },
+  socialButton: {
+    marginBottom: spacing.md,
+  },
+  bottomSection: {},
+  switchRow: {
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    flexDirection: 'row',
-    backgroundColor: colors.gray950,
-    borderTopWidth: 0.1,
-    borderLeftWidth: 0.25,
-    borderColor: colors.gray700,
+    gap: spacing.xs,
+    marginTop: spacing.md,
   },
-  blackText: {
-    color: colors.gray900,
-    fontSize: 14,
+  switchPrompt: {
+    ...typography.small,
+    color: colors.text.secondary,
+  },
+  switchCta: {
+    ...typography.small,
+    color: colors.primary[600],
     fontFamily: 'Inter-SemiBold',
-    marginLeft: 10,
-  },
-  whiteText: {
-    color: colors.white,
-    fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
-    marginLeft: 10,
-  },
-  whiteBoldText: {
-    color: colors.white,
-    fontSize: 14,
-    fontFamily: 'Inter-Bold',
-    textAlign: 'center',
-    marginVertical: 8,
-  },
-  grayText: {
-    textAlign: 'center',
-    color: colors.gray100,
-    fontSize: 12,
-    fontFamily: 'Inter-Regular',
   },
 });
 
