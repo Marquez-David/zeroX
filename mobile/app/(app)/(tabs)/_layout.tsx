@@ -1,9 +1,10 @@
 import { Tabs } from 'expo-router';
+import { Bitcoin } from 'lucide-react-native';
+
 import {
   HomeIcon,
   CategoryIcon,
   UploadIcon,
-  CalendarIcon,
   UserIcon,
 } from '@lib/icons';
 
@@ -42,11 +43,15 @@ const TabsLayout = () => (
       }}
     />
     <Tabs.Screen
-      name='calendar'
+      name='crypto'
       options={{
-        tabBarLabel: 'Agenda',
+        tabBarLabel: 'Crypto',
         tabBarIcon: ({ color, size, focused }) => (
-          <CalendarIcon color={color} size={size} focused={focused} />
+          <Bitcoin
+            color={color}
+            size={size}
+            strokeWidth={focused ? 2.5 : 2}
+          />
         ),
       }}
     />

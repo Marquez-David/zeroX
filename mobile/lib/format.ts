@@ -62,6 +62,36 @@ export function shortId(uuid: string): string {
   return uuid.split('-')[0].toUpperCase();
 }
 
+/**
+ * Render a BTC amount with up to 8 decimals and no trailing zeros.
+ * The ₿ prefix stays separate from the number so consumers can style them
+ * independently if needed.
+ */
+export function formatBTC(value: number): string {
+  if (!Number.isFinite(value)) return '₿ 0';
+  const fixed = value.toFixed(8);
+  const trimmed = parseFloat(fixed).toString();
+  return `₿ ${trimmed}`;
+}
+
+export function truncateMiddle(text: string, prefix = 8, suffix = 6): string {
+  if (text.length <= prefix + suffix + 1) return text;
+  return `${text.slice(0, prefix)}…${text.slice(-suffix)}`;
+}
+
+const UNIX_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric',
+});
+
+export function formatUnixDate(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds <= 0) return '—';
+  // Blockstream returns UNIX seconds; guard in case the backend switches to ms.
+  const ms = seconds > 1e12 ? seconds : seconds * 1000;
+  return UNIX_DATE_FORMATTER.format(new Date(ms));
+}
+
 const normalizeCategory = (name: string) =>
   name
     .toLowerCase()

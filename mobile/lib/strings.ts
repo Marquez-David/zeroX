@@ -73,6 +73,42 @@ export const categoryDetailStrings = {
   empty: 'No operations in this category.',
 };
 
+export const cryptoTxDetailStrings = {
+  title: 'Transaction',
+  type: 'Type',
+  date: 'Date',
+  amount: 'Amount',
+  fee: 'Fee',
+  status: 'Status',
+  from: 'From',
+  to: 'To',
+  reference: 'Reference',
+};
+
+export const cryptoStrings = {
+  title: 'Crypto',
+  currentBalance: 'Current balance',
+  received: 'Income',
+  sent: 'Expense',
+  transactions: 'Transactions',
+  walletEvolution: 'Wallet balance evolution',
+  btcPrice: 'BTC price (EUR)',
+  btcPriceComingSoon: 'BTC price feed coming soon.',
+  allYearsLabel: 'All',
+  confirmed: 'Confirmed',
+  pending: 'Pending',
+  internal: 'Internal',
+  net: 'Net',
+  txs: 'txs',
+  ops: 'operations',
+  emptyTitle: 'No wallets tracked',
+  emptySubtitle:
+    'Add a wallet via the API to see its live balance, transactions and BTC evolution here.',
+  noTransactions: 'No transactions in this period.',
+  fees: 'Fees',
+  largest: 'Largest',
+};
+
 export const reportsListStrings = {
   title: 'Reports',
   allYears: 'All',
