@@ -11,6 +11,7 @@ import {
   type NativeSyntheticEvent,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import CryptoTxCard from '@components/CustomCards/CryptoTxCard';
 import CryptoTxDetailModal from '@components/CustomCards/CryptoTxDetailModal';
@@ -38,6 +39,8 @@ const CHART_HEIGHT = 200;
 const CryptoScreen = () => {
   const { width: windowWidth } = useWindowDimensions();
   const { data: wallets = [], isLoading: walletsLoading } = useWallets();
+  const router = useRouter();
+  const params = useLocalSearchParams<{ walletUuid?: string }>();
 
   const [selectedWalletUuid, setSelectedWalletUuid] = useState<string | null>(
     null,
@@ -55,6 +58,15 @@ const CryptoScreen = () => {
     const stillThere = wallets.some((w) => w.uuid === selectedWalletUuid);
     if (!stillThere) setSelectedWalletUuid(wallets[0].uuid);
   }, [wallets, selectedWalletUuid]);
+
+  useEffect(() => {
+    if (!params.walletUuid) return;
+    const exists = wallets.some((w) => w.uuid === params.walletUuid);
+    if (exists) setSelectedWalletUuid(params.walletUuid);
+    // Consume the param so subsequent renders (or navigating away and back)
+    // don't keep overriding the user's selection.
+    router.setParams({ walletUuid: undefined });
+  }, [params.walletUuid, wallets, router]);
 
   const { data: walletDetail, isLoading: detailLoading } = useWallet(
     selectedWalletUuid ?? undefined,

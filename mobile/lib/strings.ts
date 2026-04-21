@@ -41,7 +41,68 @@ export const homeStrings = {
 
 export const profileStrings = {
   title: 'Profile',
+  memberSince: 'Member since',
+  photoUploadSoon: 'Profile photo upload coming soon',
+  sectionAccount: 'Account',
+  sectionWallets: 'Wallets',
+  sectionDanger: 'Danger zone',
+  username: 'Username',
+  changePassword: 'Change password',
+  wallets: 'Wallets',
+  wallet: 'wallet',
+  walletsPlural: 'wallets',
   logout: 'Log out',
+  deleteAccount: 'Delete account',
+};
+
+export const deleteAccountStrings = {
+  title: 'Delete account',
+  body:
+    'This permanently deletes your account, reports, operations, and tracked wallets. This cannot be undone.',
+  cancel: 'Cancel',
+  confirm: 'Delete',
+};
+
+export const walletsSettingsStrings = {
+  title: 'Wallets',
+  addTitle: 'Add wallet',
+  detailTitle: 'Wallet',
+  xpubLabel: 'Extended public key (xpub)',
+  xpubPlaceholder: 'xpub6C…',
+  helper:
+    "We use this read-only key to fetch your wallet's balance and transactions from Blockstream. Your funds stay safe.",
+  submit: 'Add wallet',
+  emptyTitle: 'No wallets yet',
+  emptySubtitle:
+    'Add your first wallet to track its balance and transactions.',
+  copy: 'Copy',
+  copied: 'Copied',
+  viewInCrypto: 'View in Crypto',
+  deleteWallet: 'Delete wallet',
+  deleteWalletPrompt: 'Delete wallet?',
+  deleteWalletBody: 'This removes it from tracking; no funds are moved.',
+  cancel: 'Cancel',
+  confirm: 'Delete',
+  requiredXpub: 'Extended public key is required',
+};
+
+export const changePasswordStrings = {
+  title: 'Change password',
+  current: 'Current password',
+  new: 'New password',
+  confirm: 'Confirm new password',
+  hint: 'Use at least 14 characters mixing letters, numbers and symbols.',
+  submit: 'Update password',
+  success: 'Password updated',
+};
+
+export const changeUsernameStrings = {
+  title: 'Username',
+  label: 'Username',
+  submit: 'Save',
+  success: 'Username updated',
+  requiredUsername: 'Username is required',
+  invalidUsername: 'Username must be at least 3 characters',
 };
 
 export const reportStrings = {
