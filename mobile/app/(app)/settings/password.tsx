@@ -8,7 +8,10 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Formik } from 'formik';
 import { ChevronLeft } from 'lucide-react-native';
@@ -44,6 +47,7 @@ const validate = (values: FormValues) => {
 const ChangePasswordScreen = () => {
   const router = useRouter();
   const mutation = useChangePasswordMutation();
+  const insets = useSafeAreaInsets();
   const [serverError, setServerError] = React.useState<string | null>(null);
 
   return (
@@ -115,7 +119,15 @@ const ChangePasswordScreen = () => {
                 />
                 {serverError ? <Text style={styles.error}>{serverError}</Text> : null}
               </ScrollView>
-              <View style={styles.footer}>
+              <View
+                style={[
+                  styles.footer,
+                  {
+                    paddingBottom:
+                      Math.max(insets.bottom, spacing.lg) + spacing.xs,
+                  },
+                ]}
+              >
                 <PrimaryButton
                   title={changePasswordStrings.submit}
                   onPress={() => handleSubmit()}
@@ -165,8 +177,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   footer: {
-    padding: spacing.screenPadding,
-    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.screenPadding,
+    paddingTop: spacing.screenPadding,
   },
 });
 

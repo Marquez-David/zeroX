@@ -139,7 +139,7 @@ const ReportDetailScreen = () => {
         onEndReached={() => {
           if (hasNextPage && !isFetchingNextPage) fetchNextPage();
         }}
-        onEndReachedThreshold={0.5}
+        onEndReachedThreshold={1}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
       />

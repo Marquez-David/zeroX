@@ -7,7 +7,10 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { Bitcoin, ChevronLeft, Copy } from 'lucide-react-native';
@@ -25,6 +28,7 @@ const WalletDetailScreen = () => {
   const { uuid } = useLocalSearchParams<{ uuid: string }>();
   const { data: wallets = [] } = useWallets();
   const deleteMutation = useDeleteWalletMutation();
+  const insets = useSafeAreaInsets();
 
   const walletIndex = wallets.findIndex((w) => w.uuid === uuid);
   const wallet = walletIndex >= 0 ? wallets[walletIndex] : null;
@@ -93,7 +97,15 @@ const WalletDetailScreen = () => {
               </TouchableOpacity>
             </View>
           </ScrollView>
-          <View style={styles.footer}>
+          <View
+            style={[
+              styles.footer,
+              {
+                paddingBottom:
+                  Math.max(insets.bottom, spacing.lg) + spacing.xs,
+              },
+            ]}
+          >
             <PrimaryButton
               title={walletsSettingsStrings.viewInCrypto}
               variant='secondary'
@@ -181,8 +193,8 @@ const styles = StyleSheet.create({
     color: colors.primary[600],
   },
   footer: {
-    padding: spacing.screenPadding,
-    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.screenPadding,
+    paddingTop: spacing.screenPadding,
     gap: spacing.sm,
   },
   missing: {
