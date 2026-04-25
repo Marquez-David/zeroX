@@ -27,12 +27,12 @@ def retrieve_reports() -> flask.make_response:
         plus a `next_cursor` (or null when the last page is reached).
     """
     try:
-        params = DateFilterSchema(**request.args)
+        data = DateFilterSchema(**request.args)
     except ValidationError as e:
         msg = str(e.errors()[0].get("ctx", {}).get("error", e.errors()[0].get("msg")))
         return flask.make_response({"msg": msg}, HTTPStatus.BAD_REQUEST)
 
-    return reports.retrieve_reports(params.cursor, params.limit, params.year)
+    return reports.retrieve_reports(data.cursor, data.limit, data.year)
 
 
 @BP.route("/reports/<string:uuid>", methods=["GET"])
