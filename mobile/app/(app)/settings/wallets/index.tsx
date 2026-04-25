@@ -1,5 +1,13 @@
 import React from 'react';
-import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Bitcoin, ChevronLeft, Plus } from 'lucide-react-native';
@@ -66,7 +74,11 @@ const WalletsListScreen = () => {
         )}
         contentContainerStyle={styles.list}
         ListEmptyComponent={
-          !isLoading ? (
+          isLoading ? (
+            <View style={styles.empty}>
+              <ActivityIndicator color={colors.primary[600]} />
+            </View>
+          ) : (
             <View style={styles.empty}>
               <View style={styles.emptyIcon}>
                 <Bitcoin size={32} color={colors.text.muted} strokeWidth={2} />
@@ -78,7 +90,7 @@ const WalletsListScreen = () => {
                 {walletsSettingsStrings.emptySubtitle}
               </Text>
             </View>
-          ) : null
+          )
         }
       />
     </SafeAreaView>

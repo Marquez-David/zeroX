@@ -225,7 +225,10 @@ const CryptoScreen = () => {
   if (walletsLoading && wallets.length === 0) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.loading}>
+        <View style={styles.header}>
+          <Text style={styles.title}>{cryptoStrings.title}</Text>
+        </View>
+        <View style={styles.empty}>
           <ActivityIndicator color={colors.primary[600]} />
         </View>
       </SafeAreaView>
@@ -393,7 +396,11 @@ const CryptoScreen = () => {
           </View>
         )}
         ListEmptyComponent={
-          walletDetail ? (
+          detailLoading && !walletDetail ? (
+            <View style={styles.inlineEmpty}>
+              <ActivityIndicator color={colors.primary[600]} />
+            </View>
+          ) : walletDetail ? (
             <View style={styles.inlineEmpty}>
               <Text style={styles.inlineEmptyText}>
                 {cryptoStrings.noTransactions}

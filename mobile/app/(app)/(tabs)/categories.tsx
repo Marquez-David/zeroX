@@ -53,27 +53,27 @@ const Categories = () => {
         <Text style={styles.title}>{categoriesStrings.title}</Text>
       </View>
 
-      {isLoading && categories.length === 0 ? (
-        <View style={styles.loading}>
-          <ActivityIndicator color={colors.primary[600]} />
-        </View>
-      ) : (
-        <FlatList
-          data={categories}
-          keyExtractor={(item) => item.uuid}
-          ListHeaderComponent={
-            <>
-              <View style={styles.chartCard}>
-                <View style={styles.chartHeader}>
-                  <Text style={styles.chartTitle}>
-                    {categoriesStrings.breakdown}
-                  </Text>
-                  <Select
-                    options={yearOptions}
-                    value={currentYearValue}
-                    onChange={handleYearChange}
-                  />
+      <FlatList
+        data={categories}
+        keyExtractor={(item) => item.uuid}
+        ListHeaderComponent={
+          <>
+            <View style={styles.chartCard}>
+              <View style={styles.chartHeader}>
+                <Text style={styles.chartTitle}>
+                  {categoriesStrings.breakdown}
+                </Text>
+                <Select
+                  options={yearOptions}
+                  value={currentYearValue}
+                  onChange={handleYearChange}
+                />
+              </View>
+              {isLoading && categories.length === 0 ? (
+                <View style={styles.donutPlaceholder}>
+                  <ActivityIndicator color={colors.primary[600]} />
                 </View>
+              ) : (
                 <View style={styles.donutWrapper}>
                   <DonutChart
                     segments={donutSegments}
@@ -94,26 +94,32 @@ const Categories = () => {
                     </View>
                   </DonutChart>
                 </View>
-              </View>
-            </>
-          }
-          renderItem={({ item }) => (
-            <View style={styles.rowWrapper}>
-              <CategoryRow
-                name={item.name}
-                amount={item.expenses}
-                percentage={item.percentage}
-                operationCount={item.operationCount}
-                onPress={() =>
-                  router.push({
-                    pathname: '/category/[uuid]',
-                    params: { uuid: item.uuid },
-                  })
-                }
-              />
+              )}
             </View>
-          )}
-          ListEmptyComponent={
+          </>
+        }
+        renderItem={({ item }) => (
+          <View style={styles.rowWrapper}>
+            <CategoryRow
+              name={item.name}
+              amount={item.expenses}
+              percentage={item.percentage}
+              operationCount={item.operationCount}
+              onPress={() =>
+                router.push({
+                  pathname: '/category/[uuid]',
+                  params: { uuid: item.uuid },
+                })
+              }
+            />
+          </View>
+        )}
+        ListEmptyComponent={
+          isLoading && categories.length === 0 ? (
+            <View style={styles.empty}>
+              <ActivityIndicator color={colors.primary[600]} />
+            </View>
+          ) : (
             <View style={styles.empty}>
               <Text style={styles.emptyTitle}>
                 {categoriesStrings.emptyTitle}
@@ -122,11 +128,11 @@ const Categories = () => {
                 {categoriesStrings.emptySubtitle}
               </Text>
             </View>
-          }
-          contentContainerStyle={styles.list}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+          )
+        }
+        contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
+      />
     </SafeAreaView>
   );
 };
@@ -164,6 +170,11 @@ const styles = StyleSheet.create({
   },
   donutWrapper: {
     alignItems: 'center',
+  },
+  donutPlaceholder: {
+    minHeight: 220,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   chartTitle: {
     ...typography.small,

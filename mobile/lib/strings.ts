@@ -29,7 +29,7 @@ export const registerStrings = {
 export const homeStrings = {
   totalBalance: 'Total balance',
   allYears: 'All',
-  incomeVsExpenses: 'Income vs expenses',
+  resume: 'Resume',
   income: 'Income',
   expenses: 'Expenses',
   transferHistory: 'Reports history',
@@ -57,8 +57,7 @@ export const profileStrings = {
 
 export const deleteAccountStrings = {
   title: 'Delete account',
-  body:
-    'This permanently deletes your account, reports, operations, and tracked wallets. This cannot be undone.',
+  body: 'This permanently deletes your account, reports, operations, and tracked wallets. This cannot be undone.',
   cancel: 'Cancel',
   confirm: 'Delete',
 };
@@ -73,8 +72,7 @@ export const walletsSettingsStrings = {
     "We use this read-only key to fetch your wallet's balance and transactions from Blockstream. Your funds stay safe.",
   submit: 'Add wallet',
   emptyTitle: 'No wallets yet',
-  emptySubtitle:
-    'Add your first wallet to track its balance and transactions.',
+  emptySubtitle: 'Add your first wallet to track its balance and transactions.',
   copy: 'Copy',
   copied: 'Copied',
   viewInCrypto: 'View in Crypto',
@@ -121,7 +119,8 @@ export const categoriesStrings = {
   operations: 'operations',
   operation: 'operation',
   emptyTitle: 'No expenses yet',
-  emptySubtitle: 'Once you upload reports with outgoing operations, the breakdown will show up here.',
+  emptySubtitle:
+    'Once you upload reports with outgoing operations, the breakdown will show up here.',
 };
 
 export const categoryDetailStrings = {

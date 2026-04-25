@@ -1,69 +1,23 @@
 import { Tabs } from 'expo-router';
-import { Bitcoin } from 'lucide-react-native';
 
-import {
-  HomeIcon,
-  CategoryIcon,
-  UploadIcon,
-  UserIcon,
-} from '@lib/icons';
-
-import CustomTabBar from '@components/CustomTabBar/StandardTabBar';
+import FloatingTabBar from '@components/CustomTabBar/FloatingTabBar';
 
 const TabsLayout = () => (
   <Tabs
-    tabBar={(props) => <CustomTabBar {...props} />}
+    tabBar={(props) => <FloatingTabBar {...props} />}
     screenOptions={{ headerShown: false }}
   >
-    <Tabs.Screen
-      name='home'
-      options={{
-        tabBarLabel: 'Resume',
-        tabBarIcon: ({ color, size, focused }) => (
-          <HomeIcon color={color} size={size} focused={focused} />
-        ),
-      }}
-    />
-    <Tabs.Screen
-      name='categories'
-      options={{
-        tabBarLabel: 'Topics',
-        tabBarIcon: ({ color, size, focused }) => (
-          <CategoryIcon color={color} size={size} focused={focused} />
-        ),
-      }}
-    />
-    <Tabs.Screen
-      name='upload'
-      options={{
-        tabBarLabel: 'Browse',
-        tabBarIcon: ({ color, size, focused }) => (
-          <UploadIcon color={color} size={size} focused={focused} />
-        ),
-      }}
-    />
-    <Tabs.Screen
-      name='crypto'
-      options={{
-        tabBarLabel: 'Crypto',
-        tabBarIcon: ({ color, size, focused }) => (
-          <Bitcoin
-            color={color}
-            size={size}
-            strokeWidth={focused ? 2.5 : 2}
-          />
-        ),
-      }}
-    />
-    <Tabs.Screen
-      name='profile'
-      options={{
-        tabBarLabel: 'Profile',
-        tabBarIcon: ({ color, size, focused }) => (
-          <UserIcon color={color} size={size} focused={focused} />
-        ),
-      }}
-    />
+    <Tabs.Screen name='home' />
+    <Tabs.Screen name='categories' />
+    {/*
+      The `upload` route stays registered (preserves deep links and keeps
+      Expo Router's typed routes happy), but the floating action button in
+      `FloatingTabBar` opens `DocumentPicker` directly instead of navigating
+      here. The screen itself is a placeholder.
+    */}
+    <Tabs.Screen name='upload' />
+    <Tabs.Screen name='crypto' />
+    <Tabs.Screen name='profile' />
   </Tabs>
 );
 

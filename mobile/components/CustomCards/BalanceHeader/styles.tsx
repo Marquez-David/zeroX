@@ -22,6 +22,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingLeft: -8,
     ...shadows.primaryButton,
   },
   avatar: {

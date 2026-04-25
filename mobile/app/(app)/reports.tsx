@@ -42,8 +42,15 @@ const ReportsScreen = () => {
   const { reportsYear: selectedYear, setReportsYear: setSelectedYear } =
     useFilters();
 
-  const { filteredReports, statsByUuid, availableYears, isLoading } =
-    useYearStats(selectedYear);
+  const {
+    filteredReports,
+    statsByUuid,
+    availableYears,
+    isLoading,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useYearStats(selectedYear);
 
   const yearOptions: { value: YearValue; label: string }[] = [
     { value: 'all', label: reportsListStrings.allYears },
@@ -104,56 +111,64 @@ const ReportsScreen = () => {
         <View style={styles.backButton} />
       </View>
 
-      {isLoading ? (
-        <View style={styles.loading}>
-          <ActivityIndicator color={colors.primary[600]} />
-        </View>
-      ) : (
-        <FlatList
-          data={filteredReports}
-          keyExtractor={(item) => item.uuid}
-          ListHeaderComponent={
-            <>
-              <View style={styles.chartCard}>
-                <View style={styles.chartHeader}>
-                  <Text style={styles.chartTitle}>
-                    {reportsListStrings.evolution}
-                  </Text>
-                  <Select
-                    options={yearOptions}
-                    value={currentYearValue}
-                    onChange={handleYearChange}
-                  />
-                </View>
-                <BalanceChart labels={chart.labels} values={chart.values} />
-                <View style={styles.chartStatsWrapper}>
-                  <ChartStats values={statsValues} />
-                </View>
-              </View>
-              <View style={styles.listHeader}>
-                <Text style={styles.listTitle}>
-                  {reportsListStrings.title}
+      <FlatList
+        data={filteredReports}
+        keyExtractor={(item) => item.uuid}
+        ListHeaderComponent={
+          <>
+            <View style={styles.chartCard}>
+              <View style={styles.chartHeader}>
+                <Text style={styles.chartTitle}>
+                  {reportsListStrings.evolution}
                 </Text>
-              </View>
-            </>
-          }
-          renderItem={({ item }: { item: ReportSummary }) => {
-            const stats = statsByUuid.get(item.uuid);
-            return (
-              <View style={styles.cardWrapper}>
-                <ReportCard
-                  uuid={item.uuid}
-                  date={item.date}
-                  balance={item.balance}
-                  income={stats?.income}
-                  expenses={stats?.expenses}
-                  operationCount={stats?.operationCount}
-                  onPress={navigateToReport}
+                <Select
+                  options={yearOptions}
+                  value={currentYearValue}
+                  onChange={handleYearChange}
                 />
               </View>
-            );
-          }}
-          ListEmptyComponent={
+              {isLoading && filteredReports.length === 0 ? (
+                <View style={styles.chartPlaceholder}>
+                  <ActivityIndicator color={colors.primary[600]} />
+                </View>
+              ) : (
+                <>
+                  <BalanceChart labels={chart.labels} values={chart.values} />
+                  <View style={styles.chartStatsWrapper}>
+                    <ChartStats values={statsValues} />
+                  </View>
+                </>
+              )}
+            </View>
+            <View style={styles.listHeader}>
+              <Text style={styles.listTitle}>
+                {reportsListStrings.title}
+              </Text>
+            </View>
+          </>
+        }
+        renderItem={({ item }: { item: ReportSummary }) => {
+          const stats = statsByUuid.get(item.uuid);
+          return (
+            <View style={styles.cardWrapper}>
+              <ReportCard
+                uuid={item.uuid}
+                date={item.date}
+                balance={item.balance}
+                income={stats?.income}
+                expenses={stats?.expenses}
+                operationCount={stats?.operationCount}
+                onPress={navigateToReport}
+              />
+            </View>
+          );
+        }}
+        ListEmptyComponent={
+          isLoading ? (
+            <View style={styles.empty}>
+              <ActivityIndicator color={colors.primary[600]} />
+            </View>
+          ) : (
             <View style={styles.empty}>
               <Text style={styles.emptyTitle}>
                 {reportsListStrings.emptyTitle}
@@ -162,11 +177,22 @@ const ReportsScreen = () => {
                 {reportsListStrings.emptySubtitle}
               </Text>
             </View>
-          }
-          contentContainerStyle={styles.list}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+          )
+        }
+        ListFooterComponent={
+          isFetchingNextPage ? (
+            <View style={styles.loadingMore}>
+              <ActivityIndicator color={colors.primary[600]} />
+            </View>
+          ) : null
+        }
+        onEndReached={() => {
+          if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+        }}
+        onEndReachedThreshold={0.5}
+        contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
+      />
     </SafeAreaView>
   );
 };
@@ -213,6 +239,11 @@ const styles = StyleSheet.create({
   chartStatsWrapper: {
     paddingHorizontal: spacing.lg,
   },
+  chartPlaceholder: {
+    minHeight: 200,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   chartTitle: {
     ...typography.small,
     fontFamily: 'Inter-SemiBold',
@@ -252,6 +283,10 @@ const styles = StyleSheet.create({
   emptySubtitle: {
     ...typography.bodyRegular,
     textAlign: 'center',
+  },
+  loadingMore: {
+    paddingVertical: spacing.lg,
+    alignItems: 'center',
   },
 });
 

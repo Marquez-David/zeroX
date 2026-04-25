@@ -44,7 +44,7 @@ const SpendingProgress = ({
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        <Text style={styles.title}>{homeStrings.incomeVsExpenses}</Text>
+        <Text style={styles.title}>{homeStrings.resume}</Text>
         <Select
           options={yearOptions}
           value={currentValue}
@@ -70,7 +70,11 @@ const SpendingProgress = ({
       <View style={styles.legend}>
         <View style={styles.legendItem}>
           <View style={styles.iconCircleIncome}>
-            <ArrowUpRight size={14} color={colors.success[500]} strokeWidth={2.5} />
+            <ArrowUpRight
+              size={14}
+              color={colors.success[500]}
+              strokeWidth={2.5}
+            />
           </View>
           <View>
             <Text style={styles.legendLabel}>{homeStrings.income}</Text>
@@ -80,7 +84,11 @@ const SpendingProgress = ({
 
         <View style={styles.legendItem}>
           <View style={styles.iconCircleExpenses}>
-            <ArrowDownLeft size={14} color={colors.error[500]} strokeWidth={2.5} />
+            <ArrowDownLeft
+              size={14}
+              color={colors.error[500]}
+              strokeWidth={2.5}
+            />
           </View>
           <View>
             <Text style={styles.legendLabel}>{homeStrings.expenses}</Text>

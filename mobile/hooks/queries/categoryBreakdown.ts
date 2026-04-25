@@ -1,126 +1,59 @@
 import { useMemo } from 'react';
-import { useQueries, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 
-import { reports as reportsApi } from '@lib/api';
-import { queryKeys } from '@lib/queryClient';
-import type { Operation } from '@lib/types';
+import { operations as operationsApi } from '@lib/api';
+import { useYearStats } from '@hooks/queries/reports';
 
 type CategoryBreakdownEntry = {
   uuid: string;
   name: string;
   expenses: number;
+  /** Original count from the API (`operations` field). */
+  operations: number;
+  /** Alias kept for legacy consumers that read `operationCount`. */
   operationCount: number;
   percentage: number;
-  operations: Operation[];
 };
 
 /**
- * Aggregates per-category expense totals + the raw expense operations for the
- * given year. Reuses the same per-report detail queries as `useYearStats`
- * (via `queryKeys.reports.detail`), so opening the report detail screen
- * reuses this cache and vice versa.
+ * Per-category expense totals for the given year, served by a single
+ * `GET /operations/by-category` call. Years for the selector come from the
+ * shared reports cache via `useYearStats(null)` (same source as home/reports
+ * so the dropdown stays consistent across screens).
  *
  * Pass `year = null` for "All time".
  */
 export function useCategoryBreakdown(year: number | null) {
-  const reportsQuery = useQuery({
-    queryKey: queryKeys.reports.all,
-    queryFn: async () => {
-      const { reports } = await reportsApi.list();
-      return reports;
-    },
+  const breakdownQuery = useQuery({
+    queryKey: ['operations', 'by-category', { year }],
+    queryFn: () => operationsApi.byCategory({ year: year ?? undefined }),
+    staleTime: 30_000,
   });
 
-  const filteredReports = useMemo(() => {
-    const list = reportsQuery.data ?? [];
-    if (year === null) return list;
-    return list.filter((r) => new Date(r.date).getFullYear() === year);
-  }, [reportsQuery.data, year]);
+  // Years come from the same source the rest of the app uses, so the year
+  // selector here matches the one on home/reports.
+  const { availableYears } = useYearStats(null);
 
-  const detailQueries = useQueries({
-    queries: filteredReports.map((r) => ({
-      queryKey: queryKeys.reports.detail(r.uuid),
-      queryFn: async () => {
-        const { report } = await reportsApi.get(r.uuid);
-        return report;
-      },
-      staleTime: 60_000,
-    })),
-  });
+  const total = breakdownQuery.data?.total_expenses ?? 0;
 
-  const { categories, totalExpenses, totalOperationCount } = useMemo(() => {
-    const byUuid = new Map<
-      string,
-      {
-        uuid: string;
-        name: string;
-        expenses: number;
-        operationCount: number;
-        operations: Operation[];
-      }
-    >();
-    let totalExpenses = 0;
-    let totalOperationCount = 0;
-
-    detailQueries.forEach((q) => {
-      if (!q.data) return;
-      q.data.operations.forEach((op) => {
-        // Expenses-only: negative amounts (money out).
-        if (op.amount >= 0) return;
-        const amount = Math.abs(op.amount);
-        const key = op.category.uuid;
-        const current = byUuid.get(key) ?? {
-          uuid: op.category.uuid,
-          name: op.category.name,
-          expenses: 0,
-          operationCount: 0,
-          operations: [],
-        };
-        current.expenses += amount;
-        current.operationCount += 1;
-        current.operations.push(op);
-        byUuid.set(key, current);
-        totalExpenses += amount;
-        totalOperationCount += 1;
-      });
-    });
-
-    const sorted = Array.from(byUuid.values()).sort(
-      (a, b) => b.expenses - a.expenses,
-    );
-    // Sort each category's operations newest first so the detail screen
-    // reads chronologically top-to-bottom.
-    sorted.forEach((c) => {
-      c.operations.sort(
-        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-      );
-    });
-    const categories: CategoryBreakdownEntry[] = sorted.map((c) => ({
-      ...c,
-      percentage:
-        totalExpenses > 0 ? (c.expenses / totalExpenses) * 100 : 0,
+  const categories = useMemo<CategoryBreakdownEntry[]>(() => {
+    const list = breakdownQuery.data?.categories ?? [];
+    return list.map((c) => ({
+      uuid: c.uuid,
+      name: c.name,
+      expenses: c.expenses,
+      operations: c.operations,
+      operationCount: c.operations,
+      percentage: total > 0 ? (c.expenses / total) * 100 : 0,
     }));
-
-    return { categories, totalExpenses, totalOperationCount };
-  }, [detailQueries]);
-
-  const availableYears = useMemo(() => {
-    const years = new Set<number>();
-    (reportsQuery.data ?? []).forEach((r) =>
-      years.add(new Date(r.date).getFullYear()),
-    );
-    return Array.from(years).sort((a, b) => b - a);
-  }, [reportsQuery.data]);
-
-  const isLoading =
-    reportsQuery.isLoading || detailQueries.some((q) => q.isLoading);
+  }, [breakdownQuery.data, total]);
 
   return {
     categories,
-    totalExpenses,
-    totalOperationCount,
+    totalExpenses: total,
+    totalOperationCount: breakdownQuery.data?.total_operation_count ?? 0,
     availableYears,
-    isLoading,
+    isLoading: breakdownQuery.isLoading && categories.length === 0,
   };
 }
 

@@ -16,12 +16,11 @@ import TransactionDetailModal from '@components/CustomCards/TransactionDetailMod
 import { useFilters } from '@contexts/filters';
 import { useCategoryBreakdown } from '@hooks/queries/categoryBreakdown';
 import { useCategories } from '@hooks/queries/categories';
-import { useChangeOperationCategory } from '@hooks/queries/operations';
 import {
-  categoryColor,
-  formatCurrency,
-  formatDate,
-} from '@lib/format';
+  useChangeOperationCategory,
+  useOperations,
+} from '@hooks/queries/operations';
+import { categoryColor, formatCurrency, formatDate } from '@lib/format';
 import { categoryDetailStrings } from '@lib/strings';
 import { colors, radii, spacing, typography } from '@lib/theme';
 import type { Operation } from '@lib/types';
@@ -36,8 +35,15 @@ const CategoryDetailScreen = () => {
   const { uuid } = useLocalSearchParams<{ uuid: string }>();
   const { categoriesYear } = useFilters();
 
-  const { categories, totalExpenses, isLoading } =
+  const { categories, totalExpenses, isLoading: breakdownLoading } =
     useCategoryBreakdown(categoriesYear);
+  const {
+    operations,
+    isLoading: operationsLoading,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useOperations({ year: categoriesYear, categoryUuid: uuid });
   const { data: categoriesList = [] } = useCategories();
   const changeCategory = useChangeOperationCategory(undefined);
 
@@ -50,29 +56,37 @@ const CategoryDetailScreen = () => {
     [categories, uuid],
   );
 
+  // Operations come back date DESC from the server; first item = most recent,
+  // last loaded item = oldest *so far*. The "lastDate" displayed is therefore
+  // the boundary of what we've fetched, not necessarily of the entire set —
+  // good enough until the user scrolls to load more.
   const stats = useMemo(() => {
-    if (!category || category.operations.length === 0) {
-      return { average: 0, share: 0, firstDate: null, lastDate: null };
+    if (!category || category.operationCount === 0) {
+      return {
+        average: 0,
+        share: 0,
+        firstDate: null as string | null,
+        lastDate: null as string | null,
+      };
     }
     const average = category.expenses / category.operationCount;
     const share =
       totalExpenses > 0 ? (category.expenses / totalExpenses) * 100 : 0;
-    // operations are sorted desc by date in the hook
-    const firstDate =
-      category.operations[category.operations.length - 1]?.date ?? null;
-    const lastDate = category.operations[0]?.date ?? null;
+    const firstDate = operations[operations.length - 1]?.date ?? null;
+    const lastDate = operations[0]?.date ?? null;
     return { average, share, firstDate, lastDate };
-  }, [category, totalExpenses]);
+  }, [category, totalExpenses, operations]);
 
   const handleSaveCategory = (
     operationUuid: string,
     categoryUuid: string,
-  ) =>
-    changeCategory.mutateAsync({ operationUuid, categoryUuid });
+  ) => changeCategory.mutateAsync({ operationUuid, categoryUuid });
 
-  // Loading the first time or after navigating before data lands — keep the
-  // header visible so the back button still works.
-  const showLoader = isLoading && !category;
+  // The hero card waits for the breakdown so it can show the totals; the
+  // list renders independently so the user sees data as soon as either
+  // request resolves. We never gate the whole screen on a single hook.
+  const heroLoading = breakdownLoading && !category;
+  const listLoading = operationsLoading && operations.length === 0;
 
   const tint = categoryColor(category?.name);
 
@@ -92,87 +106,102 @@ const CategoryDetailScreen = () => {
         <View style={styles.backButton} />
       </View>
 
-      {showLoader ? (
-        <View style={styles.loading}>
-          <ActivityIndicator color={colors.primary[600]} />
-        </View>
-      ) : (
-        <FlatList
-          data={category?.operations ?? []}
-          keyExtractor={(item) => item.uuid}
-          ListHeaderComponent={
-            category ? (
-              <View style={styles.hero}>
-                <Text style={styles.heroLabel}>
-                  {categoryDetailStrings.totalSpent}
+      <FlatList
+        data={operations}
+        keyExtractor={(item) => item.uuid}
+        ListHeaderComponent={
+          heroLoading ? (
+            <View style={styles.heroPlaceholder}>
+              <ActivityIndicator color={colors.primary[600]} />
+            </View>
+          ) : category ? (
+            <View style={styles.hero}>
+              <Text style={styles.heroLabel}>
+                {categoryDetailStrings.totalSpent}
+              </Text>
+              <Text
+                style={[styles.heroAmount, { color: tint }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
+                -{formatCurrency(category.expenses)}
+              </Text>
+              {stats.firstDate && stats.lastDate ? (
+                <Text style={styles.heroMeta}>
+                  {formatDateRange(stats.firstDate, stats.lastDate)}
                 </Text>
-                <Text
-                  style={[styles.heroAmount, { color: tint }]}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                >
-                  -{formatCurrency(category.expenses)}
-                </Text>
-                {stats.firstDate && stats.lastDate ? (
-                  <Text style={styles.heroMeta}>
-                    {formatDateRange(stats.firstDate, stats.lastDate)}
+              ) : null}
+
+              <View style={styles.heroDivider} />
+
+              <View style={styles.statsRow}>
+                <View style={styles.stat}>
+                  <Text style={styles.statLabel}>
+                    {categoryDetailStrings.average}
                   </Text>
-                ) : null}
-
-                <View style={styles.heroDivider} />
-
-                <View style={styles.statsRow}>
-                  <View style={styles.stat}>
-                    <Text style={styles.statLabel}>
-                      {categoryDetailStrings.average}
-                    </Text>
-                    <Text
-                      style={styles.statValue}
-                      numberOfLines={1}
-                      adjustsFontSizeToFit
-                    >
-                      -{formatCurrency(stats.average)}
-                    </Text>
-                  </View>
-                  <View style={styles.statDivider} />
-                  <View style={styles.stat}>
-                    <Text style={styles.statLabel}>
-                      {categoryDetailStrings.ofTotal}
-                    </Text>
-                    <Text
-                      style={[styles.statValue, { color: tint }]}
-                      numberOfLines={1}
-                      adjustsFontSizeToFit
-                    >
-                      {stats.share.toFixed(1)}%
-                    </Text>
-                  </View>
+                  <Text
+                    style={styles.statValue}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                  >
+                    -{formatCurrency(stats.average)}
+                  </Text>
+                </View>
+                <View style={styles.statDivider} />
+                <View style={styles.stat}>
+                  <Text style={styles.statLabel}>
+                    {categoryDetailStrings.ofTotal}
+                  </Text>
+                  <Text
+                    style={[styles.statValue, { color: tint }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                  >
+                    {stats.share.toFixed(1)}%
+                  </Text>
                 </View>
               </View>
-            ) : null
-          }
-          renderItem={({ item }) => (
-            <View style={styles.cardWrapper}>
-              <TransactionCard
-                concept={item.concept}
-                category={item.category?.name}
-                date={item.date}
-                amount={item.amount}
-                onPress={() => setSelectedOperation(item)}
-              />
             </View>
-          )}
-          ListEmptyComponent={
+          ) : null
+        }
+        renderItem={({ item }) => (
+          <View style={styles.cardWrapper}>
+            <TransactionCard
+              concept={item.concept}
+              category={item.category?.name}
+              date={item.date}
+              amount={item.amount}
+              onPress={() => setSelectedOperation(item)}
+            />
+          </View>
+        )}
+        ListEmptyComponent={
+          listLoading ? (
+            <View style={styles.empty}>
+              <ActivityIndicator color={colors.primary[600]} />
+            </View>
+          ) : (
             <View style={styles.empty}>
               <Text style={styles.emptyText}>
                 {categoryDetailStrings.empty}
               </Text>
             </View>
-          }
-          contentContainerStyle={styles.list}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+          )
+        }
+        ListFooterComponent={
+          isFetchingNextPage ? (
+            <View style={styles.loadingMore}>
+              <ActivityIndicator color={colors.primary[600]} />
+            </View>
+          ) : null
+        }
+        onEndReached={() => {
+          if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+        }}
+        onEndReachedThreshold={0.5}
+        contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
+      />
 
       <TransactionDetailModal
         visible={selectedOperation !== null}
@@ -219,6 +248,16 @@ const styles = StyleSheet.create({
     borderRadius: radii.xl,
     backgroundColor: colors.surfaceMuted,
     gap: spacing.sm,
+  },
+  heroPlaceholder: {
+    marginHorizontal: spacing.screenPadding,
+    marginBottom: spacing.sectionGap,
+    paddingVertical: spacing.xl,
+    borderRadius: radii.xl,
+    backgroundColor: colors.surfaceMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 160,
   },
   heroLabel: {
     ...typography.caption,
@@ -289,6 +328,10 @@ const styles = StyleSheet.create({
   emptyText: {
     ...typography.bodyRegular,
     textAlign: 'center',
+  },
+  loadingMore: {
+    paddingVertical: spacing.lg,
+    alignItems: 'center',
   },
 });
 

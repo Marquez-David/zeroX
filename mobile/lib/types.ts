@@ -26,13 +26,23 @@ export interface ReportSummary {
   uuid: string;
   date: string;
   balance: number;
+  income: number;
+  expenses: number;
+  operations_count: number;
 }
 
 export interface ReportDetail {
   uuid: string;
   date: string;
   balance: number;
-  operations: Operation[];
+  income: number;
+  expenses: number;
+}
+
+export interface ReportTotals {
+  balance: number;
+  income: number;
+  expenses: number;
 }
 
 // === Operations ===
@@ -48,6 +58,20 @@ export interface Operation {
   date: string;
   concept: string;
   category: OperationCategory;
+}
+
+export interface CategoryBreakdownEntry {
+  uuid: string;
+  name: string;
+  expenses: number;
+  operations: number;
+}
+
+// === Pagination ===
+
+export interface Page<T> {
+  items: T[];
+  next_cursor: string | null;
 }
 
 // === Categories ===

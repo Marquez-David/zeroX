@@ -18,7 +18,7 @@ import TransactionCard from '@components/CustomCards/TransactionCard';
 import TransactionDetailModal from '@components/CustomCards/TransactionDetailModal';
 import { useCategories } from '@hooks/queries/categories';
 import { useChangeOperationCategory } from '@hooks/queries/operations';
-import { useReport } from '@hooks/queries/reports';
+import { useReportOperations } from '@hooks/queries/reports';
 import { formatMonthYear } from '@lib/format';
 import { reportStrings } from '@lib/strings';
 import { colors, radii, spacing, typography } from '@lib/theme';
@@ -26,7 +26,14 @@ import type { Operation } from '@lib/types';
 
 const ReportDetailScreen = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { data: report, isLoading } = useReport(id);
+  const {
+    report,
+    operations,
+    isLoading,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useReportOperations(id);
   const { data: categories = [] } = useCategories();
   const changeCategory = useChangeOperationCategory(id);
 
@@ -35,19 +42,12 @@ const ReportDetailScreen = () => {
     null,
   );
 
-  const operations = report?.operations ?? [];
-
-  // Totals always come from every operation — the filter only changes which
-  // rows the user sees, not the summary numbers.
-  const { income, expenses, balance } = useMemo(() => {
-    let income = 0;
-    let expenses = 0;
-    for (const op of operations) {
-      if (op.amount >= 0) income += op.amount;
-      else expenses += Math.abs(op.amount);
-    }
-    return { income, expenses, balance: income - expenses };
-  }, [operations]);
+  // Server-side aggregates: the report row already carries income/expenses
+  // for the entire report, independent of how many operation pages we've
+  // loaded.
+  const income = report?.income ?? 0;
+  const expenses = report?.expenses ?? 0;
+  const balance = report?.balance ?? 0;
 
   const visibleOperations = useMemo(() => {
     if (filter === 'income') return operations.filter((op) => op.amount >= 0);
@@ -80,16 +80,12 @@ const ReportDetailScreen = () => {
         <View style={styles.backButton} />
       </View>
 
-      {isLoading && !report ? (
-        <View style={styles.loading}>
-          <ActivityIndicator color={colors.primary[600]} />
-        </View>
-      ) : (
-        <FlatList
-          data={visibleOperations}
-          keyExtractor={(item) => item.uuid}
-          ListHeaderComponent={
-            <>
+      <FlatList
+        data={visibleOperations}
+        keyExtractor={(item) => item.uuid}
+        ListHeaderComponent={
+          <>
+            {report ? (
               <SummaryCards
                 income={income}
                 expenses={expenses}
@@ -97,35 +93,56 @@ const ReportDetailScreen = () => {
                 activeFilter={filter}
                 onToggleFilter={toggleFilter}
               />
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>
-                  {reportStrings.transactions}
-                </Text>
+            ) : (
+              <View style={styles.summaryPlaceholder}>
+                <ActivityIndicator color={colors.primary[600]} />
               </View>
-            </>
-          }
-          renderItem={({ item }) => (
-            <View style={styles.cardWrapper}>
-              <TransactionCard
-                concept={item.concept}
-                category={item.category?.name}
-                date={item.date}
-                amount={item.amount}
-                onPress={() => setSelectedOperation(item)}
-              />
+            )}
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>
+                {reportStrings.transactions}
+              </Text>
             </View>
-          )}
-          ListEmptyComponent={
+          </>
+        }
+        renderItem={({ item }) => (
+          <View style={styles.cardWrapper}>
+            <TransactionCard
+              concept={item.concept}
+              category={item.category?.name}
+              date={item.date}
+              amount={item.amount}
+              onPress={() => setSelectedOperation(item)}
+            />
+          </View>
+        )}
+        ListEmptyComponent={
+          isLoading && operations.length === 0 ? (
+            <View style={styles.empty}>
+              <ActivityIndicator color={colors.primary[600]} />
+            </View>
+          ) : (
             <View style={styles.empty}>
               <Text style={styles.emptyText}>
                 {reportStrings.noTransactions}
               </Text>
             </View>
-          }
-          contentContainerStyle={styles.list}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+          )
+        }
+        ListFooterComponent={
+          isFetchingNextPage ? (
+            <View style={styles.loadingMore}>
+              <ActivityIndicator color={colors.primary[600]} />
+            </View>
+          ) : null
+        }
+        onEndReached={() => {
+          if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+        }}
+        onEndReachedThreshold={0.5}
+        contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
+      />
 
       <TransactionDetailModal
         visible={selectedOperation !== null}
@@ -186,9 +203,23 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xxl,
     alignItems: 'center',
   },
+  summaryPlaceholder: {
+    marginHorizontal: spacing.screenPadding,
+    marginBottom: spacing.sectionGap,
+    paddingVertical: spacing.xl,
+    borderRadius: radii.xl,
+    backgroundColor: colors.surfaceMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 140,
+  },
   emptyText: {
     ...typography.bodyRegular,
     textAlign: 'center',
+  },
+  loadingMore: {
+    paddingVertical: spacing.lg,
+    alignItems: 'center',
   },
 });
 

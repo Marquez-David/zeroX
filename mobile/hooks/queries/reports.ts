@@ -1,28 +1,64 @@
 import { useMemo } from 'react';
-import { useQueries, useQuery } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+} from '@tanstack/react-query';
 
-import { reports as reportsApi } from '@lib/api';
+import {
+  reports as reportsApi,
+  type ReportDetailResponse,
+  type ReportListResponse,
+} from '@lib/api';
 import { queryKeys } from '@lib/queryClient';
-import type { ReportDetail } from '@lib/types';
+import type { Operation, ReportSummary, ReportTotals } from '@lib/types';
 
-export function useReports() {
-  return useQuery({
-    queryKey: queryKeys.reports.all,
-    queryFn: async () => {
-      const { reports } = await reportsApi.list();
-      return reports;
-    },
+const REPORTS_PAGE_SIZE = 50;
+const REPORT_OPERATIONS_PAGE_SIZE = 50;
+
+/**
+ * Paginated report list, optionally filtered by year. The TanStack Query
+ * infinite cache transparently appends pages; consumers see the flattened
+ * `reports` array via the `data` selector below.
+ */
+export function useReports(year: number | null) {
+  return useInfiniteQuery({
+    queryKey: [...queryKeys.reports.all, { year }],
+    queryFn: ({ pageParam }) =>
+      reportsApi.list({
+        cursor: pageParam,
+        limit: REPORTS_PAGE_SIZE,
+        year: year ?? undefined,
+      }),
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage: ReportListResponse) => lastPage.next_cursor,
   });
 }
 
+/**
+ * Single report metadata + paginated operations. The metadata block (uuid,
+ * date, balance, income, expenses) is the same on every page — we read it
+ * from the first page; operations are flattened across pages.
+ */
 export function useReport(uuid: string | undefined) {
-  return useQuery({
-    queryKey: uuid ? queryKeys.reports.detail(uuid) : queryKeys.reports.all,
-    queryFn: async () => {
-      if (!uuid) return null;
-      const { report } = await reportsApi.get(uuid);
-      return report;
+  return useInfiniteQuery({
+    queryKey: uuid ? queryKeys.reports.detail(uuid) : ['reports', 'idle'],
+    queryFn: async ({ pageParam }) => {
+      if (!uuid) {
+        return {
+          msg: 'OK',
+          report: null,
+          operations: [],
+          next_cursor: null,
+        } as unknown as ReportDetailResponse;
+      }
+      return reportsApi.get(uuid, {
+        cursor: pageParam,
+        limit: REPORT_OPERATIONS_PAGE_SIZE,
+      });
     },
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage: ReportDetailResponse) => lastPage.next_cursor,
     enabled: !!uuid,
   });
 }
@@ -33,91 +69,132 @@ type ReportStats = {
   operationCount: number;
 };
 
-function statsFromDetail(detail: ReportDetail): ReportStats {
-  let income = 0;
-  let expenses = 0;
-  for (const op of detail.operations) {
-    if (op.amount >= 0) income += op.amount;
-    else expenses += Math.abs(op.amount);
-  }
-  return { income, expenses, operationCount: detail.operations.length };
-}
-
 /**
- * Fetches all reports (cheap summary list) plus the full detail of every
- * report that matches `year`, then rolls those operations up into
- * income/expenses totals. Reports are fetched in parallel via `useQueries`
- * and each detail query shares the same cache key as `useReport(uuid)`, so
- * navigating to the report screen reuses the already-loaded payload.
+ * Aggregator on top of the paginated `/reports` endpoint. The year filter is
+ * pushed to the server (`?year=…`) so pagination and the row aggregates the
+ * server returns reflect just the selected year. Per-row `income` /
+ * `expenses` / `operations_count` come straight from the API; the screen
+ * totals are summed across the loaded pages.
  *
- * Pass `year = null` for "All time".
+ * `availableYears` is derived from a separate unfiltered call
+ * (`useReports(null)`), which **shares its cache key** with any other place
+ * that calls `useReports(null)`. When `year === null` (the typical default)
+ * this is the *same* query as `reportsQuery` and only one network request
+ * fires; when a year is picked, the unfiltered call fires once and stays
+ * cached so the selector never re-loads on subsequent year changes.
+ *
+ * Pagination is hidden behind this hook by default — `fetchNextPage` is also
+ * exposed so list screens can wire `onEndReached`.
  */
 export function useYearStats(year: number | null) {
-  const reportsQuery = useReports();
+  const reportsQuery = useReports(year);
 
-  const filteredReports = useMemo(() => {
-    const list = reportsQuery.data ?? [];
-    if (year === null) return list;
-    return list.filter((r) => new Date(r.date).getFullYear() === year);
-  }, [reportsQuery.data, year]);
+  // Same cache key as `useReports(null)` everywhere else. Dedupes with
+  // `reportsQuery` when `year === null`; otherwise fires once and is reused.
+  const allReportsQuery = useReports(null);
 
-  const detailQueries = useQueries({
-    queries: filteredReports.map((r) => ({
-      queryKey: queryKeys.reports.detail(r.uuid),
-      queryFn: async () => {
-        const { report } = await reportsApi.get(r.uuid);
-        return report;
-      },
-      staleTime: 60_000,
-    })),
-  });
+  const filteredReports = useMemo<ReportSummary[]>(
+    () => reportsQuery.data?.pages.flatMap((p) => p.reports) ?? [],
+    [reportsQuery.data],
+  );
 
   const statsByUuid = useMemo(() => {
     const map = new Map<string, ReportStats>();
-    detailQueries.forEach((query, i) => {
-      const uuid = filteredReports[i]?.uuid;
-      if (uuid && query.data) {
-        map.set(uuid, statsFromDetail(query.data));
-      }
+    filteredReports.forEach((r) => {
+      map.set(r.uuid, {
+        income: r.income,
+        expenses: r.expenses,
+        operationCount: r.operations_count,
+      });
     });
     return map;
-  }, [detailQueries, filteredReports]);
+  }, [filteredReports]);
 
-  const totals = useMemo(() => {
+  // Sum the per-row aggregates over the loaded pages. We deliberately ignore
+  // the server's `totals` block: it currently doesn't apply the `?year=`
+  // filter, so a year-scoped page would show all-time totals instead.
+  const totals: ReportTotals = useMemo(() => {
+    let balance = 0;
     let income = 0;
     let expenses = 0;
-    statsByUuid.forEach((s) => {
-      income += s.income;
-      expenses += s.expenses;
+    filteredReports.forEach((r) => {
+      balance += r.balance;
+      income += r.income;
+      expenses += r.expenses;
     });
-    return { income, expenses };
-  }, [statsByUuid]);
-
-  const totalBalance = useMemo(
-    () => filteredReports.reduce((sum, r) => sum + r.balance, 0),
-    [filteredReports],
-  );
+    return { balance, income, expenses };
+  }, [filteredReports]);
 
   const availableYears = useMemo(() => {
     const years = new Set<number>();
-    (reportsQuery.data ?? []).forEach((r) =>
-      years.add(new Date(r.date).getFullYear()),
+    allReportsQuery.data?.pages.forEach((page) =>
+      page.reports.forEach((r) =>
+        years.add(new Date(r.date).getFullYear()),
+      ),
     );
     return Array.from(years).sort((a, b) => b - a);
-  }, [reportsQuery.data]);
-
-  const isLoading =
-    reportsQuery.isLoading || detailQueries.some((q) => q.isLoading);
+  }, [allReportsQuery.data]);
 
   return {
     filteredReports,
     statsByUuid,
-    totalBalance,
+    totalBalance: totals.balance,
     income: totals.income,
     expenses: totals.expenses,
     availableYears,
-    isLoading,
+    isLoading:
+      (reportsQuery.isLoading && filteredReports.length === 0) ||
+      (allReportsQuery.isLoading && availableYears.length === 0),
+    hasNextPage: reportsQuery.hasNextPage,
+    fetchNextPage: reportsQuery.fetchNextPage,
+    isFetchingNextPage: reportsQuery.isFetchingNextPage,
   };
+}
+
+/**
+ * Convenience: flatten the operations across all loaded pages of a paginated
+ * report-detail query, plus expose pagination controls. Splits responsibility
+ * cleanly from `useReport` so the report-detail screen can map operations
+ * straight into a `FlatList`.
+ */
+export function useReportOperations(reportUuid: string | undefined) {
+  const query = useReport(reportUuid);
+
+  const operations = useMemo<Operation[]>(
+    () => query.data?.pages.flatMap((p) => p.operations) ?? [],
+    [query.data],
+  );
+
+  const report = query.data?.pages[0]?.report ?? null;
+
+  return {
+    report,
+    operations,
+    isLoading: query.isLoading,
+    hasNextPage: query.hasNextPage,
+    fetchNextPage: query.fetchNextPage,
+    isFetchingNextPage: query.isFetchingNextPage,
+  };
+}
+
+/**
+ * Uploads a report file (Excel) to the API. On success invalidates every
+ * reports/operations cache so list views and aggregates refetch.
+ */
+export function useUploadReportMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ uri, name }: { uri: string; name: string }) =>
+      reportsApi.upload(uri, name),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.reports.all });
+      queryClient.invalidateQueries({ queryKey: ['operations', 'list'] });
+      queryClient.invalidateQueries({
+        queryKey: ['operations', 'by-category'],
+      });
+    },
+  });
 }
 
 export type { ReportStats };

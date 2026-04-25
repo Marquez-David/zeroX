@@ -1,11 +1,13 @@
 import * as SecureStore from 'expo-secure-store';
 import type {
+  CategoryBreakdownEntry,
   LoginResponse,
   User,
-  ReportSummary,
-  ReportDetail,
   Operation,
   Category,
+  ReportDetail,
+  ReportSummary,
+  ReportTotals,
   Wallet,
   WalletDetail,
 } from './types';
@@ -179,11 +181,57 @@ export const users = {
 
 // --- Report Endpoints ---
 
-export const reports = {
-  list: () => request<{ msg: string; reports: ReportSummary[] }>('/reports'),
+export type ReportListParams = {
+  cursor?: string | null;
+  limit?: number;
+  year?: number | null;
+};
 
-  get: (uuid: string) =>
-    request<{ msg: string; report: ReportDetail }>(`/reports/${uuid}`),
+export type ReportListResponse = {
+  msg: string;
+  reports: ReportSummary[];
+  next_cursor: string | null;
+  totals: ReportTotals;
+};
+
+export type ReportDetailResponse = {
+  msg: string;
+  report: ReportDetail;
+  operations: Operation[];
+  next_cursor: string | null;
+};
+
+function buildQuery(params: Record<string, unknown>): string {
+  const entries = Object.entries(params).filter(
+    ([, v]) => v !== undefined && v !== null && v !== '',
+  );
+  if (entries.length === 0) return '';
+  const qs = entries
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+    .join('&');
+  return `?${qs}`;
+}
+
+export const reports = {
+  list: (params: ReportListParams = {}) =>
+    request<ReportListResponse>(
+      `/reports${buildQuery({
+        cursor: params.cursor,
+        limit: params.limit,
+        year: params.year,
+      })}`,
+    ),
+
+  get: (
+    uuid: string,
+    params: { cursor?: string | null; limit?: number } = {},
+  ) =>
+    request<ReportDetailResponse>(
+      `/reports/${uuid}${buildQuery({
+        cursor: params.cursor,
+        limit: params.limit,
+      })}`,
+    ),
 
   upload: async (fileUri: string, fileName: string) => {
     const formData = new FormData();
@@ -204,7 +252,42 @@ export const reports = {
 
 // --- Operation Endpoints ---
 
+export type OperationListParams = {
+  cursor?: string | null;
+  limit?: number;
+  year?: number | null;
+  categoryUuid?: string;
+};
+
+export type OperationListResponse = {
+  msg: string;
+  operations: Operation[];
+  next_cursor: string | null;
+};
+
+export type OperationsByCategoryResponse = {
+  msg: string;
+  categories: CategoryBreakdownEntry[];
+  total_expenses: number;
+  total_operation_count: number;
+};
+
 export const operations = {
+  list: (params: OperationListParams = {}) =>
+    request<OperationListResponse>(
+      `/operations${buildQuery({
+        cursor: params.cursor,
+        limit: params.limit,
+        year: params.year,
+        category_uuid: params.categoryUuid,
+      })}`,
+    ),
+
+  byCategory: (params: { year?: number | null } = {}) =>
+    request<OperationsByCategoryResponse>(
+      `/operations/by-category${buildQuery({ year: params.year })}`,
+    ),
+
   get: (uuid: string) =>
     request<{ msg: string; operation: Operation }>(`/operations/${uuid}`),
 

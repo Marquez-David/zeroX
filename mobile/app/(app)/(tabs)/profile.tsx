@@ -40,7 +40,7 @@ const initialsFromUser = (username?: string, email?: string): string => {
 const Profile = () => {
   const router = useRouter();
   const { user } = useSession();
-  const { data: wallets = [] } = useWallets();
+  const { data: wallets = [], isLoading: walletsLoading } = useWallets();
   const logoutMutation = useLogoutMutation();
   const deleteAccountMutation = useDeleteAccountMutation();
 
@@ -68,7 +68,9 @@ const Profile = () => {
   const createdAt = user?.created_at;
 
   const walletCount = wallets.length;
-  const walletCountLabel = `${walletCount} ${walletCount === 1 ? profileStrings.wallet : profileStrings.walletsPlural}`;
+  const walletCountLabel = walletsLoading
+    ? '…'
+    : `${walletCount} ${walletCount === 1 ? profileStrings.wallet : profileStrings.walletsPlural}`;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>

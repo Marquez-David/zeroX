@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -20,8 +20,9 @@ import { colors, spacing, typography } from '@lib/theme';
 
 const HomeScreen = () => {
   const { user } = useSession();
+  // Default to "All" so the cold-login render only fires the unfiltered
+  // `/reports` request — the selector lets the user narrow down explicitly.
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
-  const [hasInitialized, setHasInitialized] = useState(false);
 
   const {
     filteredReports,
@@ -32,15 +33,6 @@ const HomeScreen = () => {
     availableYears,
     isLoading,
   } = useYearStats(selectedYear);
-
-  // Default to the most recent year once we know which years have data.
-  // After the first default, honour explicit user selections (including 'All').
-  useEffect(() => {
-    if (!hasInitialized && availableYears.length > 0) {
-      setSelectedYear(availableYears[0]);
-      setHasInitialized(true);
-    }
-  }, [hasInitialized, availableYears]);
 
   const navigateToReport = (uuid: string) => {
     router.push({ pathname: '/report/[id]', params: { id: uuid } });
