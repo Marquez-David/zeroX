@@ -15,6 +15,10 @@ def login_user() -> flask.make_response:
     """
     Login a user.
 
+    Query params:
+        email (str): User's email address.
+        password (str): User's password.
+
     Returns:
         A Flask response object indicating the result of the login.
     """
