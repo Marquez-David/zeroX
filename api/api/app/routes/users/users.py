@@ -27,6 +27,10 @@ def create_user() -> flask.make_response:
     """
     Create a new user.
 
+    Query params:
+        email (str): User's email address.
+        password (str): User's password.
+
     Returns:
         A Flask response object indicating the result of the registration.
     """
@@ -45,6 +49,10 @@ def change_password() -> flask.make_response:
     """
     Change the password of an existing user.
 
+    Query params:
+        current_password (str): User's current password.
+        new_password (str): User's new password.
+
     Returns:
         A Flask response object indicating the result of the password change.
     """
@@ -62,6 +70,9 @@ def change_password() -> flask.make_response:
 def change_username() -> flask.make_response:
     """
     Change the username of an existing user.
+
+    Query params:
+        username (str): The new username for the user.
 
     Returns:
         A Flask response object indicating the result of the username change.
