@@ -9,6 +9,7 @@ from argon2 import PasswordHasher  # type: ignore
 from cryptography.fernet import Fernet  # type: ignore
 
 from sqlalchemy.dialects import postgresql
+from sqlalchemy.ext.hybrid import hybrid_property  # ← nuevo import
 from sqlalchemy.orm import query
 from datetime import datetime
 
@@ -258,7 +259,8 @@ class Report(DB.Model):
         id (int): The unique identifier for the report.
         uuid (uuid.UUID): The UUID of the report.
         date (datetime): The date of the report.
-        balance (float): The balance of the report.
+        income (float): The income of the report.
+        expenses (float): The expenses of the report.
         user_id (int): The ID of the user associated with the report.
     """
 
@@ -271,7 +273,8 @@ class Report(DB.Model):
         default=uuid_gen.uuid4,
     )
     date: datetime = DB.Column(DB.DateTime, nullable=False)
-    balance: float = DB.Column(DB.Float, nullable=False)
+    income: float = DB.Column(DB.Float, nullable=False)
+    expenses: float = DB.Column(DB.Float, nullable=False)
     user_id: int = DB.Column(
         DB.Integer, DB.ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
@@ -280,16 +283,28 @@ class Report(DB.Model):
         "Operation", back_populates="report", cascade="all, delete-orphan"
     )
 
-    def __init__(self, balance: float, date: datetime) -> None:
+    @hybrid_property
+    def balance(self) -> float:
+        """
+        Calculate the balance of the report.
+
+        Returns:
+            float: The balance of the report (income - expenses).
+        """
+        return self.income - self.expenses
+
+    def __init__(self, income: float, expenses: float, date: datetime) -> None:
         """
         Initialize a Report instance.
 
         Args:
-            balance (float): The balance of the report.
+            income (float): The income of the report.
+            expenses (float): The expenses of the report.
             date (datetime): The date of the report.
         """
         self.user_id = current_user.id
-        self.balance = balance
+        self.income = income
+        self.expenses = expenses
         self.date = date
 
     def __repr__(self) -> str:
@@ -303,7 +318,8 @@ class Report(DB.Model):
             id=self.id,
             uuid=self.uuid,
             date=self.date,
-            balance=self.balance,
+            income=self.income,
+            expenses=self.expenses,
             user=self.user,
         )
 
