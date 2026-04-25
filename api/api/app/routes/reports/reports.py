@@ -5,8 +5,7 @@ from flask import request  # type: ignore
 from pydantic import ValidationError  # type: ignore
 from flask_jwt_extended import jwt_required  # type: ignore
 
-from app.schemas.reports import DateFilterSchema
-from app.schemas.utils import PaginationSchema
+from app.schemas.utils import DateFilterSchema, PaginationSchema
 from app.services import reports
 from app.routes.reports import BP
 

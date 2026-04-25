@@ -2,11 +2,11 @@ from typing import Optional
 
 from pydantic import field_validator  # type: ignore
 
-from app.schemas.utils import PaginationSchema
+from app.schemas.utils.pagination import PaginationSchema
 
 
 class DateFilterSchema(PaginationSchema):
-    """Schema for cursor pagination plus optional date filtering on reports."""
+    """Schema for cursor pagination plus optional year filtering."""
 
     year: Optional[int] = None
 
