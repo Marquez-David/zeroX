@@ -1,23 +1,47 @@
 import flask  # type: ignore
+import typing
+from datetime import datetime
 from http import HTTPStatus
 import pandas as pd  # type: ignore
-import typing
 
 from flask_jwt_extended import current_user  # type: ignore
 from werkzeug.datastructures import FileStorage  # type: ignore
 
 from app import models
 from app.db import DB
+from app.utils import apply_cursor_pagination
 
 
-def retrieve_reports() -> flask.make_response:
+def retrieve_reports(
+    cursor: typing.Optional[str], limit: int, year: typing.Optional[int]
+) -> flask.make_response:
     """
-    Retrieve user reports from the database.
+    Retrieve a page of user reports from the database, ordered most-recent-first.
+
+    Args:
+        cursor (Optional[str]): The opaque cursor for the next page (None = first page).
+        limit (int): The page size.
+        year (Optional[int]): Restrict to reports dated in the given year.
 
     Returns:
-        A Flask response object containing the user's reports.
+        A Flask response object containing a page of reports plus next_cursor.
     """
-    reports = models.Report.query.filter_by(user_id=current_user.id).all()
+    query = models.Report.query.filter_by(user_id=current_user.id)
+
+    if year is not None:
+        # Explicit half-open range so the (user_id, date) index is used;
+        query = query.filter(
+            models.Report.date >= datetime(year, 1, 1),
+            models.Report.date < datetime(year + 1, 1, 1),
+        )
+
+    try:
+        reports, next_cursor = apply_cursor_pagination(
+            query, models.Report, cursor, limit
+        )
+    except ValueError:
+        return flask.make_response({"msg": "Invalid cursor."}, HTTPStatus.BAD_REQUEST)
+
     return flask.make_response(
         {
             "msg": "OK",
@@ -29,25 +53,39 @@ def retrieve_reports() -> flask.make_response:
                 }
                 for report in reports
             ],
+            "next_cursor": next_cursor,
         },
         HTTPStatus.OK,
     )
 
 
-def retrieve_report(uuid: str) -> flask.make_response:
+def retrieve_report(
+    uuid: str, cursor: typing.Optional[str], limit: int
+) -> flask.make_response:
     """
-    Retrieve a single user report from the database.
+    Retrieve a single user report and a page of its operations.
 
     Args:
         uuid (str): The UUID of the report to retrieve.
+        cursor (Optional[str]): The opaque cursor for the next page of operations.
+        limit (int): The page size for operations.
 
     Returns:
-        A Flask response object containing a user's report.
+        A Flask response object containing the report metadata, a page of operations,
+        and next_cursor.
     """
     report = models.Report.query.filter_by(user_id=current_user.id, uuid=uuid).first()
     if not report:
-        # Check if the report exists for the user
         return flask.make_response({"msg": "Invalid report."}, HTTPStatus.NOT_FOUND)
+
+    query = models.Operation.query.filter_by(report_id=report.id)
+
+    try:
+        operations, next_cursor = apply_cursor_pagination(
+            query, models.Operation, cursor, limit
+        )
+    except ValueError:
+        return flask.make_response({"msg": "Invalid cursor."}, HTTPStatus.BAD_REQUEST)
 
     return flask.make_response(
         {
@@ -56,17 +94,21 @@ def retrieve_report(uuid: str) -> flask.make_response:
                 "uuid": report.uuid,
                 "date": report.date,
                 "balance": report.balance,
-                "operations": [
-                    {
-                        "uuid": operation.uuid,
-                        "amount": operation.amount,
-                        "date": operation.date,
-                        "concept": operation.concept,
-                        "category": operation.category.name,
-                    }
-                    for operation in report.operations
-                ],
             },
+            "operations": [
+                {
+                    "uuid": operation.uuid,
+                    "amount": operation.amount,
+                    "date": operation.date,
+                    "concept": operation.concept,
+                    "category": {
+                        "uuid": operation.category.uuid,
+                        "name": operation.category.name,
+                    },
+                }
+                for operation in operations
+            ],
+            "next_cursor": next_cursor,
         },
         HTTPStatus.OK,
     )
