@@ -5,6 +5,7 @@ from http import HTTPStatus
 import pandas as pd  # type: ignore
 
 from flask_jwt_extended import current_user  # type: ignore
+from sqlalchemy import func  # type: ignore
 from werkzeug.datastructures import FileStorage  # type: ignore
 
 from app import models
@@ -28,12 +29,19 @@ def retrieve_reports(
     """
     query = models.Report.query.filter_by(user_id=current_user.id)
 
+    totals_query = models.Report.query.filter_by(user_id=current_user.id)
+
     if year is not None:
         # Explicit half-open range so the (user_id, date) index is used;
         query = query.filter(
             models.Report.date >= datetime(year, 1, 1),
             models.Report.date < datetime(year + 1, 1, 1),
         )
+
+    income_total, expenses_total = totals_query.with_entities(
+        func.coalesce(func.sum(models.Report.income), 0),
+        func.coalesce(func.sum(models.Report.expenses), 0),
+    ).one()
 
     try:
         reports, next_cursor = apply_cursor_pagination(
@@ -50,10 +58,18 @@ def retrieve_reports(
                     "uuid": report.uuid,
                     "date": report.date,
                     "balance": report.balance,
+                    "income": report.income,
+                    "expenses": report.expenses,
+                    "operations_count": len(report.operations),
                 }
                 for report in reports
             ],
             "next_cursor": next_cursor,
+            "totals": {
+                "balance": round(income_total - expenses_total, 2),
+                "income": income_total,
+                "expenses": expenses_total,
+            },
         },
         HTTPStatus.OK,
     )
@@ -94,6 +110,8 @@ def retrieve_report(
                 "uuid": report.uuid,
                 "date": report.date,
                 "balance": report.balance,
+                "income": report.income,
+                "expenses": report.expenses,
             },
             "operations": [
                 {
@@ -134,7 +152,7 @@ def upload_report(file: FileStorage) -> flask.make_response:
         # Create a report for each month
         for date, operations in operations_by_month:
             report = _create_report(date, operations)
-            _create_operation(report.id, operations)
+            _create_operation(report, operations)
 
         DB.session.commit()
 
@@ -219,8 +237,10 @@ def _create_report(date: pd.Period, operations_df: pd.DataFrame) -> models.Repor
     ).first()
 
     if not report:
+        amounts = operations_df["Importe"]
         report = models.Report(
-            balance=float(round(operations_df["Importe"].sum(), 2)),
+            income=float(round(amounts[amounts > 0].sum(), 2)),
+            expenses=float(round(-amounts[amounts < 0].sum(), 2)),
             date=pd.to_datetime(operations_df["Fecha"].max()),
         )
         DB.session.add(report)
@@ -229,12 +249,12 @@ def _create_report(date: pd.Period, operations_df: pd.DataFrame) -> models.Repor
     return report
 
 
-def _create_operation(report_id: int, operations_df: pd.DataFrame) -> None:
+def _create_operation(report: models.Report, operations_df: pd.DataFrame) -> None:
     """
-    Create operations for a given report.
+    Create operations for a given report and recompute the report's aggregates.
 
     Args:
-        report_id (int): The ID of the report.
+        report (models.Report): The report to attach the operations to.
         operations_df (DataFrame): The DataFrame containing operations for the report.
     """
 
@@ -242,7 +262,7 @@ def _create_operation(report_id: int, operations_df: pd.DataFrame) -> None:
 
     existing_ops = set()
 
-    operations = models.Operation.query.filter_by(report_id=report_id).all()
+    operations = models.Operation.query.filter_by(report_id=report.id).all()
     for operation in operations:
         existing_ops.add((operation.date, operation.concept, operation.amount))
 
@@ -261,10 +281,32 @@ def _create_operation(report_id: int, operations_df: pd.DataFrame) -> None:
             amount=amount,
             concept=concept,
             date=date,
-            report_id=report_id,
+            report_id=report.id,
             category_id=random_cat.id,
         )
         DB.session.add(operation)
+
+    _refresh_report(report)
+
+
+def _refresh_report(report: models.Report) -> None:
+    """
+    Recompute and persist a report's income/expenses from its operations.
+
+    Args:
+        report (models.Report): The report whose aggregates need refreshing.
+    """
+    income = func.coalesce(func.sum(func.greatest(models.Operation.amount, 0)), 0)
+    expenses = func.coalesce(func.sum(func.greatest(-models.Operation.amount, 0)), 0)
+
+    income, expenses = (
+        DB.session.query(income, expenses)
+        .filter(models.Operation.report_id == report.id)
+        .one()
+    )
+
+    report.income = float(round(income, 2))
+    report.expenses = float(round(expenses, 2))
 
 
 def remove_report(uuid: str) -> flask.make_response:
