@@ -261,6 +261,7 @@ class Report(DB.Model):
         date (datetime): The date of the report.
         income (float): The income of the report.
         expenses (float): The expenses of the report.
+        balance (float): Derived as income - expenses.
         user_id (int): The ID of the user associated with the report.
     """
 
@@ -291,7 +292,7 @@ class Report(DB.Model):
         Returns:
             float: The balance of the report (income - expenses).
         """
-        return self.income - self.expenses
+        return round(self.income - self.expenses, 2)
 
     def __init__(self, income: float, expenses: float, date: datetime) -> None:
         """
