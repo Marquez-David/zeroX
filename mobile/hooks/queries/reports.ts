@@ -197,4 +197,27 @@ export function useUploadReportMutation() {
   });
 }
 
+/**
+ * Deletes a report by UUID. The backend cascade-deletes every operation that
+ * belonged to it, so on success we have to refresh:
+ * - The reports list (paginated) and per-report detail cache.
+ * - Every operations cache: the paginated list, the per-category breakdown,
+ *   and the individual `useOperation(uuid)` queries — we don't track which
+ *   operation UUIDs belonged to the deleted report, so we invalidate the
+ *   whole `['operations']` namespace at once. Any open detail screen pulls
+ *   fresh data and surfaces a 404 if its operation is gone.
+ */
+export function useDeleteReportMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (uuid: string) => reportsApi.delete(uuid),
+    onSuccess: (_data, uuid) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.reports.all });
+      queryClient.removeQueries({ queryKey: queryKeys.reports.detail(uuid) });
+      queryClient.invalidateQueries({ queryKey: ['operations'] });
+    },
+  });
+}
+
 export type { ReportStats };

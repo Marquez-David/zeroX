@@ -109,6 +109,11 @@ export const reportStrings = {
   balance: 'Balance',
   transactions: 'Transactions',
   noTransactions: 'No transactions in this report.',
+  deleteReport: 'Delete report',
+  deleteReportBody:
+    'This permanently removes the report and all its operations. This cannot be undone!',
+  cancel: 'Cancel',
+  confirm: 'Delete',
 };
 
 export const categoriesStrings = {

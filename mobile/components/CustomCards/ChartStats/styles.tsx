@@ -20,7 +20,6 @@ const styles = StyleSheet.create({
   statLabel: {
     ...typography.caption,
     color: colors.text.secondary,
-    textTransform: 'uppercase',
     letterSpacing: 0.8,
   },
   statValue: {

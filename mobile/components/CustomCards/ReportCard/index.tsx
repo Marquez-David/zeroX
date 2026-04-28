@@ -1,5 +1,5 @@
 import React from 'react';
-import { TouchableOpacity, View, Text } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 import { ArrowDownLeft, ArrowUpRight } from 'lucide-react-native';
 
 import { colors } from '@lib/theme';
@@ -16,6 +16,11 @@ type ReportCardProps = {
   expenses?: number;
   operationCount?: number;
   onPress: (uuid: string) => void;
+  /**
+   * Long-press handler. The home preview cards leave this off since the
+   * home screen isn't a management surface.
+   */
+  onLongPress?: (uuid: string) => void;
 };
 
 const ReportCard = ({
@@ -26,6 +31,7 @@ const ReportCard = ({
   expenses,
   operationCount,
   onPress,
+  onLongPress,
 }: ReportCardProps) => {
   const isPositive = balance >= 0;
   const Icon = isPositive ? ArrowUpRight : ArrowDownLeft;
@@ -38,6 +44,8 @@ const ReportCard = ({
   return (
     <TouchableOpacity
       onPress={() => onPress(uuid)}
+      onLongPress={onLongPress ? () => onLongPress(uuid) : undefined}
+      delayLongPress={400}
       activeOpacity={0.7}
       style={styles.container}
     >

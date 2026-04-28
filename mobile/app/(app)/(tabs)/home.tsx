@@ -9,13 +9,15 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Trash2 } from 'lucide-react-native';
 
 import BalanceHeader from '@components/CustomCards/BalanceHeader';
+import ConfirmDialog from '@components/CustomCards/ConfirmDialog';
 import SpendingProgress from '@components/CustomCards/SpendingProgress';
 import ReportCard from '@components/CustomCards/ReportCard';
 import { useSession } from '@contexts/auth';
-import { useYearStats } from '@hooks/queries/reports';
-import { homeStrings } from '@lib/strings';
+import { useDeleteReportMutation, useYearStats } from '@hooks/queries/reports';
+import { homeStrings, reportStrings } from '@lib/strings';
 import { colors, spacing, typography } from '@lib/theme';
 
 const HomeScreen = () => {
@@ -33,6 +35,19 @@ const HomeScreen = () => {
     availableYears,
     isLoading,
   } = useYearStats(selectedYear);
+
+  const deleteReport = useDeleteReportMutation();
+  const [pendingDeleteUuid, setPendingDeleteUuid] = useState<string | null>(
+    null,
+  );
+
+  const handleConfirmDelete = () => {
+    if (!pendingDeleteUuid) return;
+    deleteReport.mutate(pendingDeleteUuid, {
+      onSuccess: () => setPendingDeleteUuid(null),
+      onError: () => setPendingDeleteUuid(null),
+    });
+  };
 
   const navigateToReport = (uuid: string) => {
     router.push({ pathname: '/report/[id]', params: { id: uuid } });
@@ -88,6 +103,7 @@ const HomeScreen = () => {
                 expenses={stats?.expenses}
                 operationCount={stats?.operationCount}
                 onPress={navigateToReport}
+                onLongPress={setPendingDeleteUuid}
               />
             </View>
           );
@@ -108,6 +124,19 @@ const HomeScreen = () => {
         }
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
+      />
+
+      <ConfirmDialog
+        visible={pendingDeleteUuid !== null}
+        icon={Trash2}
+        title={reportStrings.deleteReport}
+        body={reportStrings.deleteReportBody}
+        confirmLabel={reportStrings.confirm}
+        cancelLabel={reportStrings.cancel}
+        variant='destructive'
+        loading={deleteReport.isPending}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setPendingDeleteUuid(null)}
       />
     </SafeAreaView>
   );

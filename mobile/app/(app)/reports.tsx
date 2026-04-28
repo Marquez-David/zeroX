@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -9,15 +9,16 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft, Trash2 } from 'lucide-react-native';
 
 import BalanceChart from '@components/CustomCards/BalanceChart';
 import ChartStats from '@components/CustomCards/ChartStats';
+import ConfirmDialog from '@components/CustomCards/ConfirmDialog';
 import ReportCard from '@components/CustomCards/ReportCard';
 import Select from '@components/CustomInputs/Select';
 import { useFilters } from '@contexts/filters';
-import { useYearStats } from '@hooks/queries/reports';
-import { reportsListStrings } from '@lib/strings';
+import { useDeleteReportMutation, useYearStats } from '@hooks/queries/reports';
+import { reportsListStrings, reportStrings } from '@lib/strings';
 import { colors, radii, spacing, typography } from '@lib/theme';
 import type { ReportSummary } from '@lib/types';
 
@@ -51,6 +52,19 @@ const ReportsScreen = () => {
     fetchNextPage,
     isFetchingNextPage,
   } = useYearStats(selectedYear);
+
+  const deleteReport = useDeleteReportMutation();
+  const [pendingDeleteUuid, setPendingDeleteUuid] = useState<string | null>(
+    null,
+  );
+
+  const handleConfirmDelete = () => {
+    if (!pendingDeleteUuid) return;
+    deleteReport.mutate(pendingDeleteUuid, {
+      onSuccess: () => setPendingDeleteUuid(null),
+      onError: () => setPendingDeleteUuid(null),
+    });
+  };
 
   const yearOptions: { value: YearValue; label: string }[] = [
     { value: 'all', label: reportsListStrings.allYears },
@@ -141,9 +155,7 @@ const ReportsScreen = () => {
               )}
             </View>
             <View style={styles.listHeader}>
-              <Text style={styles.listTitle}>
-                {reportsListStrings.title}
-              </Text>
+              <Text style={styles.listTitle}>{reportsListStrings.title}</Text>
             </View>
           </>
         }
@@ -159,6 +171,7 @@ const ReportsScreen = () => {
                 expenses={stats?.expenses}
                 operationCount={stats?.operationCount}
                 onPress={navigateToReport}
+                onLongPress={setPendingDeleteUuid}
               />
             </View>
           );
@@ -192,6 +205,19 @@ const ReportsScreen = () => {
         onEndReachedThreshold={1}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
+      />
+
+      <ConfirmDialog
+        visible={pendingDeleteUuid !== null}
+        icon={Trash2}
+        title={reportStrings.deleteReport}
+        body={reportStrings.deleteReportBody}
+        confirmLabel={reportStrings.confirm}
+        cancelLabel={reportStrings.cancel}
+        variant='destructive'
+        loading={deleteReport.isPending}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setPendingDeleteUuid(null)}
       />
     </SafeAreaView>
   );

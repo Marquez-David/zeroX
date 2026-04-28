@@ -1,6 +1,3 @@
-# Cheatsheet files
-cheatsheet.txt
-
 # ---------- API files ----------
 /api/.env
 
@@ -19,7 +16,6 @@ cheatsheet.txt
 web-build/
 /mobile/expo-env.d.ts
 /mobile/.vscode/
-
 # Native
 /mobile/.kotlin/
 /mobile/*.orig.*
@@ -48,5 +44,8 @@ web-build/
 # typescript
 /mobile/*.tsbuildinfo
 
-# Claude files
+# ---------- Claude files ----------
 /CLAUDE.md
+
+# ---------- Cheatsheet files ----------
+cheatsheet.txt
