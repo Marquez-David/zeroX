@@ -44,6 +44,8 @@ web-build/
 # local env files
 /mobile/.env*.local
 
+/mobile/.env
+
 # typescript
 /mobile/*.tsbuildinfo
 
