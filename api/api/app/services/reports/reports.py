@@ -10,7 +10,6 @@ from werkzeug.datastructures import FileStorage  # type: ignore
 
 from app import models
 from app.db import DB
-from app.parsers.registry import parse_report
 from app.utils import apply_cursor_pagination
 
 
@@ -162,6 +161,64 @@ def upload_report(file: FileStorage) -> flask.make_response:
         return flask.make_response({"msg": "Error in file."}, HTTPStatus.BAD_REQUEST)
 
     return flask.make_response({"msg": "Report upload successfully."}, HTTPStatus.OK)
+
+
+def parse_report(file: FileStorage) -> typing.Optional[pd.DataFrame]:
+    """
+    Parse an uploaded Excel file into a normalized DataFrame.
+
+    Args:
+        file (FileStorage): The uploaded report file.
+
+    Returns:
+        Optional[DataFrame]: The parsed DataFrame, or None if parsing failed.
+    """
+    if not file or not file.filename:
+        # Check if a file was provided
+        return None
+
+    if not file.filename.endswith((".xls", ".xlsx")):
+        # Check if the file has a valid Excel extension
+        return None
+
+    try:
+        df = pd.read_excel(file)
+        if df.empty:
+            # Check if data frame is empty
+            return None
+
+        if len(df.columns) == 2 and ";" in df.columns[0]:
+            # Check if the file contains an embedded CSV in a single column
+            file.seek(0)
+            df = pd.read_excel(file, header=None)
+
+            # Extract column names and data into separate columns
+            columns = df.iloc[2, 0].split(";")
+            data = df.iloc[3:, 0].str.split(";", expand=True)
+
+            # Keep only the columns that match the expected column names and drop empty rows
+            df = data.iloc[:, : len(columns)]
+            df = df.replace(r"^\s*$", pd.NA, regex=True).dropna(how="all")
+
+            df.columns = columns
+        else:
+            df.rename(
+                columns={
+                    "Fecha de inicio": "Fecha",
+                    "Descripción": "Concepto",
+                    "DescripciÃ³n": "Concepto",
+                },
+                inplace=True,
+            )
+
+        df["Fecha"] = pd.to_datetime(df["Fecha"], format="%d/%m/%Y")
+        df["Concepto"] = df["Concepto"].astype(str).str.strip()
+        df["Importe"] = pd.to_numeric(df["Importe"]).round(2)
+
+        return df
+
+    except Exception:
+        return None
 
 
 def _create_report(date: pd.Period, operations_df: pd.DataFrame) -> models.Report:
