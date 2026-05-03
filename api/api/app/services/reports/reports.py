@@ -28,15 +28,16 @@ def retrieve_reports(
         A Flask response object containing a page of reports plus next_cursor.
     """
     query = models.Report.query.filter_by(user_id=current_user.id)
-
     totals_query = models.Report.query.filter_by(user_id=current_user.id)
 
     if year is not None:
         # Explicit half-open range so the (user_id, date) index is used;
-        query = query.filter(
+        year_filter = (
             models.Report.date >= datetime(year, 1, 1),
             models.Report.date < datetime(year + 1, 1, 1),
         )
+        query = query.filter(*year_filter)
+        totals_query = totals_query.filter(*year_filter)
 
     income_total, expenses_total = totals_query.with_entities(
         func.coalesce(func.sum(models.Report.income), 0),
@@ -211,6 +212,7 @@ def parse_report(file: FileStorage) -> typing.Optional[pd.DataFrame]:
                 inplace=True,
             )
 
+        df = df.dropna(subset=["Fecha", "Concepto", "Importe"])
         df["Fecha"] = pd.to_datetime(df["Fecha"], format="%d/%m/%Y")
         df["Concepto"] = df["Concepto"].astype(str).str.strip()
         df["Importe"] = pd.to_numeric(df["Importe"]).round(2)

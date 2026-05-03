@@ -57,13 +57,16 @@ def create_user(email: str, password: str) -> flask.make_response:
     return flask.make_response({"msg": "User created successfully."}, HTTPStatus.OK)
 
 
-def change_password(old_password: str, new_password: str) -> flask.make_response:
+def change_password(
+    old_password: str, new_password: str, refresh_token: str
+) -> flask.make_response:
     """
-    Change the password of the current user.
+    Change the password of the current user and revoke the active token pair.
 
     Args:
         old_password (str): The current password of the user.
         new_password (str): The new password to set.
+        refresh_token (str): The refresh token of the current session, to revoke.
 
     Returns:
         flask.Response: A Flask response object with a JSON message and appropriate HTTP status code.
@@ -82,6 +85,10 @@ def change_password(old_password: str, new_password: str) -> flask.make_response
     current_user.password_attempts = 0
     current_user.locked = None
     DB.session.commit()
+
+    response = revoke_tokens(refresh_token)
+    if response is not None:
+        return response
 
     return flask.make_response({"msg": "Password changed successfully."}, HTTPStatus.OK)
 
