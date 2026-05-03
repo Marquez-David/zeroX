@@ -1,7 +1,12 @@
 import typing
 import uuid as uuid_gen
+import config
+import hmac
+import hashlib
 
 from flask_jwt_extended import current_user  # type: ignore
+from argon2 import PasswordHasher  # type: ignore
+from cryptography.fernet import Fernet  # type: ignore
 
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.hybrid import hybrid_property  # ← nuevo import
@@ -9,8 +14,6 @@ from sqlalchemy.orm import query
 from datetime import datetime
 
 from app.db import DB
-from app.security import password_hasher
-from app.security import xpub_cipher
 
 
 class User(DB.Model):
@@ -58,7 +61,7 @@ class User(DB.Model):
         self.username = email.split("@")[0]
         self.email = email
         if password is not None:
-            self.password_hash = password_hasher.hash_password(password)
+            self.password_hash = self.hash_password(password)
 
     def __repr__(self) -> str:
         """
@@ -74,6 +77,26 @@ class User(DB.Model):
             email=self.email,
         )
 
+    def hash_password(self, password: str) -> str:
+        """
+        Hash the password using Argon2 with a pepper for added security.
+
+        Args:
+            password (str): The password to hash.
+
+        Returns:
+            str: The hashed password.
+        """
+        ph = PasswordHasher()
+        pepper = config.config.PEPPER
+
+        # Use HMAC to pre-hash the password with the pepper for added security
+        hmac_password = hmac.digest(
+            key=pepper.encode(), msg=password.encode(), digest="SHA256"
+        )
+
+        return ph.hash(hmac_password)
+
     def check_password(self, password: str) -> bool:
         """
         Check if the provided password matches the stored password hash.
@@ -84,22 +107,25 @@ class User(DB.Model):
         Returns:
             bool: True if the password matches, False otherwise.
         """
-        if not password_hasher.verify_password(self.password_hash, password):
+        ph = PasswordHasher()
+        pepper = config.config.PEPPER
+
+        # Use HMAC to pre-hash the password with the pepper for added security
+        hmac_password = hmac.digest(
+            key=pepper.encode(), msg=password.encode(), digest="SHA256"
+        )
+
+        try:
+            ph.verify(self.password_hash, hmac_password)
+        except Exception:
+            # If the password does not match, return False
             return False
 
-        if password_hasher.needs_rehash(self.password_hash):
-            self.password_hash = password_hasher.hash_password(password)
+        if ph.check_needs_rehash(self.password_hash):
+            # If the password needs rehashing, rehash it
+            self.password_hash = self.hash_password(password)
 
         return True
-
-    def set_password(self, password: str) -> None:
-        """
-        Hash and store a new password.
-
-        Args:
-            password (str): The new plaintext password to set.
-        """
-        self.password_hash = password_hasher.hash_password(password)
 
 
 class Wallet(DB.Model):
@@ -134,11 +160,11 @@ class Wallet(DB.Model):
         Initialize a Wallet instance.
 
         Args:
-            xpub (str): The extended public key.
+            xpub (str): The hash of the extended public key.
         """
         self.user_id = current_user.id
-        self._xpub = xpub_cipher.encrypt(xpub)
-        self.xpub_hash = xpub_cipher.hash_xpub(xpub)
+        self._xpub = self.encrypt_xpub(xpub)
+        self.xpub_hash = self.hash_xpub(xpub)
 
     def __repr__(self) -> str:
         """
@@ -161,12 +187,12 @@ class Wallet(DB.Model):
         Returns:
             str: The decrypted extended public key.
         """
-        return xpub_cipher.decrypt(self._xpub)
+        return self.decrypt_xpub(self._xpub)
 
     @classmethod
     def get(cls, xpub: str) -> query.Query:
         """
-        Retrieve wallets owned by the current user that match the given xpub.
+        Retrieve wallets based on provided filters.
 
         Args:
             xpub (str): The extended public key to filter by.
@@ -174,10 +200,54 @@ class Wallet(DB.Model):
         Returns:
             query.Query: A SQLAlchemy query object with the applied filters.
         """
+        xpub_hash = cls.hash_xpub(xpub)
         return cls.query.filter(
             cls.user_id == current_user.id,
-            cls.xpub_hash == xpub_cipher.hash_xpub(xpub),
+            cls.xpub_hash == xpub_hash,
         )
+
+    def encrypt_xpub(self, xpub: str) -> str:
+        """
+        Encrypt the xpub using the encryption key.
+
+        Args:
+            xpub (str): The extended public key to encrypt.
+
+        Returns:
+            str: The encrypted extended public key.
+        """
+        encryption_key = config.config.ENCRYPTION_KEY
+
+        cipher = Fernet(encryption_key.encode())
+        return cipher.encrypt(xpub.encode()).decode()
+
+    def decrypt_xpub(self, encrypted_xpub: str) -> str:
+        """
+        Decrypt the xpub using the encryption key.
+
+        Args:
+            encrypted_xpub (str): The encrypted extended public key to decrypt.
+
+        Returns:
+            str: The decrypted extended public key.
+        """
+        encryption_key = config.config.ENCRYPTION_KEY
+
+        cipher = Fernet(encryption_key.encode())
+        return cipher.decrypt(encrypted_xpub.encode()).decode()
+
+    @staticmethod
+    def hash_xpub(xpub: str) -> str:
+        """
+        Hash the xpub using SHA-512.
+
+        Args:
+            xpub (str): The xpub to hash.
+
+        Returns:
+            str: The hashed xpub.
+        """
+        return hashlib.sha512(xpub.encode()).hexdigest()
 
 
 class Report(DB.Model):

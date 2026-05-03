@@ -5,7 +5,7 @@ from flask_jwt_extended import current_user  # type: ignore
 
 from app import models
 from app.db import DB
-from app.services.auth.tokens import revoke_tokens
+from app.utils.tokens import revoke_tokens
 
 
 def retrieve_user() -> flask.make_response:
@@ -78,7 +78,7 @@ def change_password(old_password: str, new_password: str) -> flask.make_response
         # Check if the old password is correct
         return flask.make_response({"msg": "Invalid password."}, HTTPStatus.BAD_REQUEST)
 
-    current_user.set_password(new_password)
+    current_user.password_hash = current_user.hash_password(new_password)
     current_user.password_attempts = 0
     current_user.locked = None
     DB.session.commit()
