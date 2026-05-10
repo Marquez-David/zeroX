@@ -81,14 +81,14 @@ def change_password(
         # Check if the old password is correct
         return flask.make_response({"msg": "Invalid password."}, HTTPStatus.BAD_REQUEST)
 
+    response = revoke_tokens(refresh_token)
+    if response is not None:
+        return response
+
     current_user.password_hash = current_user.hash_password(new_password)
     current_user.password_attempts = 0
     current_user.locked = None
     DB.session.commit()
-
-    response = revoke_tokens(refresh_token)
-    if response is not None:
-        return response
 
     return flask.make_response({"msg": "Password changed successfully."}, HTTPStatus.OK)
 
