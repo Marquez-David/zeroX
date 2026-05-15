@@ -29,12 +29,9 @@ def retrieve_operations(
     Returns:
         A Flask response object containing a page of operations plus next_cursor.
     """
-    query = (
-        models.Operation.query.join(
-            models.Report, models.Report.id == models.Operation.report_id
-        )
-        .filter(models.Report.user_id == current_user.id)
-    )
+    query = models.Operation.query.join(
+        models.Report, models.Report.id == models.Operation.report_id
+    ).filter(models.Report.user_id == current_user.id)
 
     if year is not None:
         # Half-open range so the index on Operation.date is used.
@@ -191,17 +188,17 @@ def change_category(operation: str, category: str) -> flask.make_response:
     Returns:
         A Flask response object indicating the result of the update.
     """
-    operation = models.Operation.query.filter_by(uuid=operation).first()
-    if str(operation.report.user.uuid) != str(current_user.uuid):
-        # Check if the operation belongs to the current user
+    op = models.Operation.query.filter_by(uuid=operation).first()
+    if op is None or str(op.report.user.uuid) != str(current_user.uuid):
+        # Check if the operation exists and belongs to the current user
         return flask.make_response({"msg": "Invalid operation."}, HTTPStatus.NOT_FOUND)
 
-    category = models.Category.query.filter_by(uuid=category).first()
-    if not category:
+    cat = models.Category.query.filter_by(uuid=category).first()
+    if not cat:
         # Check if the category exists
         return flask.make_response({"msg": "Invalid category."}, HTTPStatus.NOT_FOUND)
 
-    operation.category_id = category.id
+    op.category_id = cat.id
     DB.session.commit()
 
     return flask.make_response({"msg": "Category updated."}, HTTPStatus.OK)

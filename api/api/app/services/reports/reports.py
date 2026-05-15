@@ -28,15 +28,16 @@ def retrieve_reports(
         A Flask response object containing a page of reports plus next_cursor.
     """
     query = models.Report.query.filter_by(user_id=current_user.id)
-
     totals_query = models.Report.query.filter_by(user_id=current_user.id)
 
     if year is not None:
         # Explicit half-open range so the (user_id, date) index is used;
-        query = query.filter(
+        year_filter = (
             models.Report.date >= datetime(year, 1, 1),
             models.Report.date < datetime(year + 1, 1, 1),
         )
+        query = query.filter(*year_filter)
+        totals_query = totals_query.filter(*year_filter)
 
     income_total, expenses_total = totals_query.with_entities(
         func.coalesce(func.sum(models.Report.income), 0),
@@ -142,7 +143,7 @@ def upload_report(file: FileStorage) -> flask.make_response:
     Returns:
         A Flask response object indicating the result of the upload.
     """
-    if (df := _parse_file(file)) is None:
+    if (df := parse_report(file)) is None:
         return flask.make_response({"msg": "Invalid file."}, HTTPStatus.BAD_REQUEST)
 
     try:
@@ -157,14 +158,15 @@ def upload_report(file: FileStorage) -> flask.make_response:
         DB.session.commit()
 
     except Exception:
+        DB.session.rollback()
         return flask.make_response({"msg": "Error in file."}, HTTPStatus.BAD_REQUEST)
 
     return flask.make_response({"msg": "Report upload successfully."}, HTTPStatus.OK)
 
 
-def _parse_file(file: FileStorage) -> typing.Optional[pd.DataFrame]:
+def parse_report(file: FileStorage) -> typing.Optional[pd.DataFrame]:
     """
-    Parse an uploaded Excel file into a DataFrame.
+    Parse an uploaded Excel file into a normalized DataFrame.
 
     Args:
         file (FileStorage): The uploaded report file.
@@ -202,17 +204,22 @@ def _parse_file(file: FileStorage) -> typing.Optional[pd.DataFrame]:
             df.columns = columns
         else:
             df.rename(
-                columns={"Fecha de inicio": "Fecha", "DescripciÃ³n": "Concepto"},
+                columns={
+                    "Fecha de inicio": "Fecha",
+                    "Descripción": "Concepto",
+                    "DescripciÃ³n": "Concepto",
+                },
                 inplace=True,
             )
 
+        df = df.dropna(subset=["Fecha", "Concepto", "Importe"])
         df["Fecha"] = pd.to_datetime(df["Fecha"], format="%d/%m/%Y")
-        df["Conceto"] = str(df["Concepto"]).strip()
-        df["Importe"] = round(pd.to_numeric(df["Importe"]), 2)
+        df["Concepto"] = df["Concepto"].astype(str).str.strip()
+        df["Importe"] = pd.to_numeric(df["Importe"]).round(2)
 
         return df
 
-    except Exception as e:
+    except Exception:
         return None
 
 
