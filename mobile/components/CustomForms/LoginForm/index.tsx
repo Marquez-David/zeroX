@@ -31,21 +31,21 @@ const validate = (values: LoginValues) => {
 const LoginForm = ({ onSubmit, serverError }: LoginFormProps) => {
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (values: LoginValues) => {
-    setLoading(true);
-    try {
-      await onSubmit(values);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <Formik
       initialValues={{ email: '', password: '' }}
       validate={validate}
       validateOnBlur={false}
-      onSubmit={handleSubmit}
+      onSubmit={async (values, { resetForm }) => {
+        setLoading(true);
+        try {
+          await onSubmit(values);
+        } catch {
+          resetForm();
+        } finally {
+          setLoading(false);
+        }
+      }}
     >
       {({ handleChange, handleSubmit, values, errors, submitCount }) => (
         <View>

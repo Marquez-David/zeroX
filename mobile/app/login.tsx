@@ -47,8 +47,9 @@ const LoginScreen = () => {
     setInfoBanner(null);
     try {
       await loginMutation.mutateAsync(values);
-    } catch {
+    } catch (err) {
       setServerError(loginStrings.loginError);
+      throw err;
     }
   };
 

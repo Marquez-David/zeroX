@@ -42,6 +42,7 @@ const FormInput = ({
           style={[styles.input, style]}
           placeholderTextColor={colors.gray[400]}
           secureTextEntry={secureEntry && !showPassword}
+          autoCapitalize={secureEntry ? 'none' : undefined}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           {...rest}
