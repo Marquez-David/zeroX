@@ -70,6 +70,7 @@ const HomeScreen = () => {
             <BalanceHeader
               userName={user?.username || user?.email || ''}
               totalBalance={totalBalance}
+              avatarUri={user?.avatar}
             />
             <SpendingProgress
               income={income}
