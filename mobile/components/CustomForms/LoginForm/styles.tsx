@@ -1,23 +1,21 @@
 import { StyleSheet } from 'react-native';
-import colors from '@lib/colors';
+
+import { colors, radii, spacing, typography } from '@lib/theme';
 
 const styles = StyleSheet.create({
-  submitButton: {
-    borderRadius: 50,
-    padding: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'row',
-    backgroundColor: colors.green500,
-    borderTopWidth: 0.25,
-    borderLeftWidth: 0.25,
-    borderColor: colors.green400,
+  errorBanner: {
+    backgroundColor: colors.error[50],
+    borderRadius: radii.md,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
   },
-  titleText: {
-    color: colors.white,
-    fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
-    marginLeft: 10,
+  errorBannerText: {
+    ...typography.small,
+    color: colors.error[500],
+    textAlign: 'center',
+  },
+  submitButton: {
+    marginTop: spacing.md,
   },
 });
 
