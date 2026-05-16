@@ -1,68 +1,21 @@
-import { Tabs } from 'expo-router';
-import StandardHeader from '@components/CustomHeaders/StandardHeader';
-import {
-  HomeIcon,
-  CategoryIcon,
-  UploadIcon,
-  CalendarIcon,
-  UserIcon,
-} from '@lib/icons';
+import { Stack } from 'expo-router';
 
-import CustomTabBar from '@components/CustomTabBar/StandardTabBar';
+import { FiltersProvider } from '@contexts/filters';
 
-const TabsLayout = () => (
-  <Tabs tabBar={(props) => <CustomTabBar {...props} />}>
-    <Tabs.Screen
-      name='home'
-      options={{
-        tabBarLabel: 'Resume',
-        header: () => <StandardHeader />,
-        tabBarIcon: ({ color, size, focused }) => (
-          <HomeIcon color={color} size={size} focused={focused} />
-        ),
-      }}
-    />
-    <Tabs.Screen
-      name='categories'
-      options={{
-        tabBarLabel: 'Topics',
-        header: () => <StandardHeader />,
-        tabBarIcon: ({ color, size, focused }) => (
-          <CategoryIcon color={color} size={size} focused={focused} />
-        ),
-      }}
-    />
-    <Tabs.Screen
-      name='upload'
-      options={{
-        tabBarLabel: 'Browse',
-        header: () => <StandardHeader />,
-        tabBarIcon: ({ color, size, focused }) => (
-          <UploadIcon color={color} size={size} focused={focused} />
-        ),
-      }}
-    />
-    <Tabs.Screen
-      name='calendar'
-      options={{
-        tabBarLabel: 'Agenda',
-        header: () => <StandardHeader />,
-        tabBarIcon: ({ color, size, focused }) => (
-          <CalendarIcon color={color} size={size} focused={focused} />
-        ),
-      }}
-    />
-    <Tabs.Screen
-      name='profile'
-      options={{
-        tabBarLabel: 'Profile',
-        header: () => <StandardHeader />,
-        tabBarIcon: ({ color, size, focused }) => (
-          <UserIcon color={color} size={size} focused={focused} />
-        ),
-      }}
-    />
-  </Tabs>
+const AppLayout = () => (
+  <FiltersProvider>
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name='(tabs)' />
+      <Stack.Screen name='reports' />
+      <Stack.Screen name='report/[id]' />
+      <Stack.Screen name='category/[uuid]' />
+      <Stack.Screen name='settings/wallets/index' />
+      <Stack.Screen name='settings/wallets/add' />
+      <Stack.Screen name='settings/wallets/[uuid]' />
+      <Stack.Screen name='settings/password' />
+      <Stack.Screen name='settings/username' />
+    </Stack>
+  </FiltersProvider>
 );
 
-export default TabsLayout;
+export default AppLayout;

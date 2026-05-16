@@ -1,62 +1,85 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { View, Text } from 'react-native';
 import { Formik } from 'formik';
 
-import { loginStrings } from '@lib/strings';
+import { loginStrings, validationStrings } from '@lib/strings';
 
-import StandardInput from '@components/CustomInputs/StandardInput';
-import StandardButton from '@components/CustomButtons/StandardButton';
-
-import { validateEmail, validatePassword } from '@lib/utils';
+import FormInput from '@components/CustomInputs/FormInput';
+import PrimaryButton from '@components/CustomButtons/PrimaryButton';
 
 import styles from './styles';
 
-type LoginFormProps = {
-  onSubmit: () => void;
+type LoginValues = {
+  email: string;
+  password: string;
 };
 
-const LoginForm = ({ onSubmit }: LoginFormProps) => {
+type LoginFormProps = {
+  onSubmit: (values: LoginValues) => Promise<void> | void;
+  serverError?: string | null;
+};
+
+const validate = (values: LoginValues) => {
+  const errors: Partial<LoginValues> = {};
+  if (!values.email) errors.email = validationStrings.requiredEmail;
+  else if (!/\S+@\S+\.\S+/.test(values.email))
+    errors.email = validationStrings.invalidEmail;
+  if (!values.password) errors.password = validationStrings.requiredPassword;
+  return errors;
+};
+
+const LoginForm = ({ onSubmit, serverError }: LoginFormProps) => {
+  const [loading, setLoading] = useState(false);
+
   return (
     <Formik
       initialValues={{ email: '', password: '' }}
-      onSubmit={(values) => onSubmit()}
-      // validate={(values) => {
-      //   const errors: { email?: string; password?: string } = {};
-      //   errors.email = validateEmail(values.email);
-      //   errors.password = validatePassword(values.password);
-      //   return errors;
-      // }}
+      validate={validate}
+      validateOnBlur={false}
+      onSubmit={async (values, { resetForm }) => {
+        setLoading(true);
+        try {
+          await onSubmit(values);
+        } catch {
+          resetForm();
+        } finally {
+          setLoading(false);
+        }
+      }}
     >
-      {({
-        handleChange,
-        handleBlur,
-        handleSubmit,
-        values,
-        errors,
-        touched,
-      }) => (
-        <>
-          <StandardInput
-            value={values.email}
+      {({ handleChange, handleSubmit, values, errors, submitCount }) => (
+        <View>
+          {serverError && (
+            <View style={styles.errorBanner}>
+              <Text style={styles.errorBannerText}>{serverError}</Text>
+            </View>
+          )}
+          <FormInput
             label={loginStrings.email}
-            isPassword={false}
-            validation={{ touched: touched.email, error: errors.email }}
-            onChange={handleChange('email')}
-            onBlur={handleBlur('email')}
+            value={values.email}
+            onChangeText={handleChange('email')}
+            error={submitCount > 0 ? errors.email : undefined}
+            placeholder='email@example.com'
+            keyboardType='email-address'
+            autoCapitalize='none'
+            autoComplete='email'
           />
-          <StandardInput
-            value={values.password}
+          <FormInput
             label={loginStrings.password}
-            isPassword={true}
-            validation={{ touched: touched.password, error: errors.password }}
-            onChange={handleChange('password')}
-            onBlur={handleBlur('password')}
+            value={values.password}
+            onChangeText={handleChange('password')}
+            error={submitCount > 0 ? errors.password : undefined}
+            placeholder='••••••••••••••'
+            secureEntry
+            autoComplete='password'
           />
-          <StandardButton
-            button={{ logo: null, style: styles.submitButton }}
-            label={{ text: loginStrings.emailSignUp, style: styles.titleText }}
-            onPress={handleSubmit}
+          <PrimaryButton
+            title={loginStrings.enter}
+            onPress={() => handleSubmit()}
+            loading={loading}
+            style={styles.submitButton}
           />
-        </>
+        </View>
       )}
     </Formik>
   );
