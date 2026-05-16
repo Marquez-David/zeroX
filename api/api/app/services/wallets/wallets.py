@@ -98,7 +98,7 @@ def _fetch_address_chain_stats(address: str) -> tuple[int, int] | None:
 
         if "funded_txo_sum" in chain_stats and "spent_txo_sum" in chain_stats:
             return (chain_stats["funded_txo_sum"], chain_stats["spent_txo_sum"])
-    except (requests.RequestException, ValueError) as e:
+    except (requests.RequestException, ValueError):
         pass
 
     return None
@@ -252,8 +252,12 @@ def _fetch_wallet_transactions(addresses: list[str]) -> list[dict]:
             # Network/HTTP errors or JSON decode errors - continue to next address
             continue
 
-    # Sort transactions by date, newest first
-    return sorted(all_txs.values(), key=lambda x: x["date"], reverse=True)
+    # Sort transactions by date, newest first.
+    return sorted(
+        all_txs.values(),
+        key=lambda x: x["date"] if x["date"] is not None else float("inf"),
+        reverse=True,
+    )
 
 
 def _satoshis_to_btc(satoshis: int | float) -> float:

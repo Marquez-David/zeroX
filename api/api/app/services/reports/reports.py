@@ -168,6 +168,10 @@ def parse_report(file: FileStorage) -> typing.Optional[pd.DataFrame]:
     """
     Parse an uploaded Excel file into a normalized DataFrame.
 
+    Detects the file format from the first cell and delegates to the appropriate parser.
+    Returns a DataFrame with columns [Concepto, Fecha, Importe], or None if the file is
+    invalid or the format is not recognised.
+
     Args:
         file (FileStorage): The uploaded report file.
 
@@ -175,50 +179,86 @@ def parse_report(file: FileStorage) -> typing.Optional[pd.DataFrame]:
         Optional[DataFrame]: The parsed DataFrame, or None if parsing failed.
     """
     if not file or not file.filename:
-        # Check if a file was provided
         return None
 
     if not file.filename.endswith((".xls", ".xlsx")):
-        # Check if the file has a valid Excel extension
         return None
 
     try:
-        df = pd.read_excel(file)
-        if df.empty:
-            # Check if data frame is empty
+        raw = pd.read_excel(file, header=None)
+        if raw.empty:
             return None
 
-        if len(df.columns) == 2 and ";" in df.columns[0]:
-            # Check if the file contains an embedded CSV in a single column
-            file.seek(0)
-            df = pd.read_excel(file, header=None)
+        first_cell = str(raw.iloc[0, 0]).strip()
 
-            # Extract column names and data into separate columns
-            columns = df.iloc[2, 0].split(";")
-            data = df.iloc[3:, 0].str.split(";", expand=True)
-
-            # Keep only the columns that match the expected column names and drop empty rows
-            df = data.iloc[:, : len(columns)]
-            df = df.replace(r"^\s*$", pd.NA, regex=True).dropna(how="all")
-
-            df.columns = columns
+        if first_cell == "Titular":
+            return _parse_account_ledger(raw)
+        elif first_cell == "Tipo":
+            return _parse_transaction_statement(raw)
         else:
-            df.rename(
-                columns={
-                    "Fecha de inicio": "Fecha",
-                    "Descripción": "Concepto",
-                    "DescripciÃ³n": "Concepto",
-                },
-                inplace=True,
-            )
+            return None
 
-        df = df.dropna(subset=["Fecha", "Concepto", "Importe"])
-        df["Fecha"] = pd.to_datetime(df["Fecha"], format="%d/%m/%Y")
+    except Exception:
+        return None
+
+
+def _parse_account_ledger(raw: pd.DataFrame) -> typing.Optional[pd.DataFrame]:
+    """
+    Parse a 4-column account ledger export.
+
+    Layout: rows 0-1 are account metadata, row 2 is the header row
+    (Concepto, Fecha, Importe, Saldo), rows 3+ are transactions.
+
+    Args:
+        raw (DataFrame): Full raw DataFrame read with header=None.
+
+    Returns:
+        Optional[DataFrame]: Normalised DataFrame or None on failure.
+    """
+    try:
+        df = raw.iloc[3:].copy()
+        df.columns = raw.iloc[2].tolist()
+        df = df[["Concepto", "Fecha", "Importe"]].reset_index(drop=True)
+        df = df.replace(r"^\s*$", pd.NA, regex=True).dropna(how="all")
+
+        df["Fecha"] = pd.to_datetime(df["Fecha"])
         df["Concepto"] = df["Concepto"].astype(str).str.strip()
         df["Importe"] = pd.to_numeric(df["Importe"]).round(2)
 
         return df
+    except Exception:
+        return None
 
+
+def _parse_transaction_statement(raw: pd.DataFrame) -> typing.Optional[pd.DataFrame]:
+    """
+    Parse a tabular transaction statement export.
+
+    Layout: row 0 is the header row (Tipo, Producto, Fecha de inicio,
+    Fecha de finalización, Descripción, Importe, …), rows 1+ are transactions.
+    The Descripción header may be mangled by encoding issues; it is matched by prefix.
+
+    Args:
+        raw (DataFrame): Full raw DataFrame read with header=None.
+
+    Returns:
+        Optional[DataFrame]: Normalised DataFrame or None on failure.
+    """
+    try:
+        df = raw.iloc[1:].copy()
+        df.columns = raw.iloc[0].tolist()
+        df = df.reset_index(drop=True)
+
+        desc_col = next(c for c in df.columns if str(c).startswith("Descripci"))
+        df = df.rename(columns={"Fecha de inicio": "Fecha", desc_col: "Concepto"})
+        df = df[["Concepto", "Fecha", "Importe"]].copy()
+        df = df.replace(r"^\s*$", pd.NA, regex=True).dropna(how="all")
+
+        df["Fecha"] = pd.to_datetime(df["Fecha"])
+        df["Concepto"] = df["Concepto"].astype(str).str.strip()
+        df["Importe"] = pd.to_numeric(df["Importe"]).round(2)
+
+        return df
     except Exception:
         return None
 
