@@ -69,7 +69,7 @@ export const walletsSettingsStrings = {
   xpubLabel: 'Extended public key (xpub)',
   xpubPlaceholder: 'xpub6C…',
   helper:
-    "We use this read-only key to fetch your wallet's balance and transactions from Blockstream. Your funds stay safe.",
+    "We use this read-only key to fetch your wallet's balance and transactions from Blockstream. It is stored encrypted in our database — your funds stay safe.",
   submit: 'Add wallet',
   emptyTitle: 'No wallets yet',
   emptySubtitle: 'Add your first wallet to track its balance and transactions.',

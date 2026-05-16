@@ -6,9 +6,10 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.white,
+    backgroundColor: colors.surfaceMuted,
     borderRadius: radii.lg,
-    padding: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     marginBottom: spacing.cardGap,
     gap: spacing.md,
   },
@@ -19,34 +20,39 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary[50],
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   info: {
     flex: 1,
+    gap: 3,
   },
-  title: {
-    ...typography.body,
-    fontFamily: 'Inter-SemiBold',
-    color: colors.text.primary,
+  iconText: {
+    fontSize: 15,
+    fontFamily: 'Inter-Bold',
+    letterSpacing: -0.5,
   },
   xpub: {
-    ...typography.caption,
-    fontFamily: 'Inter-Medium',
-    color: colors.text.secondary,
-    letterSpacing: 1,
-    marginTop: 2,
-  },
-  deleteAction: {
-    backgroundColor: colors.error[500],
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: spacing.xl,
-    marginBottom: spacing.cardGap,
-    borderRadius: radii.lg,
-  },
-  deleteText: {
-    ...typography.small,
+    fontSize: 14,
     fontFamily: 'Inter-SemiBold',
-    color: colors.white,
+    color: colors.text.primary,
+    letterSpacing: 0.5,
+  },
+  sub: {
+    ...typography.caption,
+    fontFamily: 'Inter-Regular',
+    color: colors.text.muted,
+  },
+  badge: {
+    backgroundColor: colors.primary[100],
+    borderRadius: radii.pill,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+  },
+  badgeText: {
+    fontSize: 11,
+    fontFamily: 'Inter-SemiBold',
+    color: colors.primary[700],
+    letterSpacing: 0.8,
   },
 });
 

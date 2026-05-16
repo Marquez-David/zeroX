@@ -177,6 +177,33 @@ export function categoryIcon(name: string | undefined | null): LucideIcon {
   return CATEGORY_ICONS[normalizeCategory(name)] ?? Package;
 }
 
+export type CryptoMeta = {
+  symbol: string;
+  name: string;
+  color: string;
+  bg: string;
+  cardBg: string;
+  addressType: string;
+  derivationPath: string;
+};
+
+const PREFIX_MAP: Record<string, CryptoMeta> = {
+  xpub: { symbol: 'BTC',  name: 'Bitcoin',      color: '#F7931A', bg: '#FFF7ED', cardBg: '#92400E', addressType: 'Legacy',       derivationPath: "m/44'/0'/0'" },
+  ypub: { symbol: 'BTC',  name: 'Bitcoin',      color: '#F7931A', bg: '#FFF7ED', cardBg: '#92400E', addressType: 'SegWit',        derivationPath: "m/49'/0'/0'" },
+  zpub: { symbol: 'BTC',  name: 'Bitcoin',      color: '#F7931A', bg: '#FFF7ED', cardBg: '#92400E', addressType: 'Native SegWit', derivationPath: "m/84'/0'/0'" },
+  Ltub: { symbol: 'LTC',  name: 'Litecoin',     color: '#345D9D', bg: '#EFF4FF', cardBg: '#1E3A8A', addressType: 'Legacy',       derivationPath: "m/44'/2'/0'" },
+  Mtub: { symbol: 'LTC',  name: 'Litecoin',     color: '#345D9D', bg: '#EFF4FF', cardBg: '#1E3A8A', addressType: 'SegWit',        derivationPath: "m/49'/2'/0'" },
+  dgub: { symbol: 'DOGE', name: 'Dogecoin',     color: '#C2A633', bg: '#FEF9EC', cardBg: '#78350F', addressType: 'Legacy',       derivationPath: "m/44'/3'/0'" },
+  drkv: { symbol: 'DASH', name: 'Dash',         color: '#1C75BC', bg: '#EFF6FF', cardBg: '#0F4A7A', addressType: 'Legacy',       derivationPath: "m/44'/5'/0'" },
+};
+
+export function detectCrypto(xpub: string): CryptoMeta {
+  for (const prefix of Object.keys(PREFIX_MAP)) {
+    if (xpub.startsWith(prefix)) return PREFIX_MAP[prefix];
+  }
+  return PREFIX_MAP.xpub;
+}
+
 export function getInitials(nameOrEmail: string): string {
   const source = nameOrEmail.includes('@')
     ? nameOrEmail.split('@')[0]

@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useRouter } from 'expo-router';
 import {
   Bitcoin,
@@ -39,6 +40,7 @@ const initialsFromUser = (username?: string, email?: string): string => {
 
 const Profile = () => {
   const router = useRouter();
+  const tabBarHeight = useBottomTabBarHeight();
   const { user } = useSession();
   const { data: wallets = [], isLoading: walletsLoading } = useWallets();
   const logoutMutation = useLogoutMutation();
@@ -78,7 +80,7 @@ const Profile = () => {
         <Text style={styles.title}>{profileStrings.title}</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: tabBarHeight + spacing.lg }]} showsVerticalScrollIndicator={false}>
         <View style={styles.identity}>
           <TouchableOpacity
             style={styles.avatar}
@@ -126,7 +128,7 @@ const Profile = () => {
             value={walletCountLabel}
             first
             last
-            onPress={() => router.push('/settings/wallets/index')}
+            onPress={() => router.push('/settings/wallets')}
           />
         </View>
 
@@ -170,7 +172,6 @@ const styles = StyleSheet.create({
   },
   scroll: {
     paddingHorizontal: spacing.screenPadding,
-    paddingBottom: spacing.scrollBottom,
     gap: spacing.md,
   },
   identity: {
