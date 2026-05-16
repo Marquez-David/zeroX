@@ -166,11 +166,7 @@ def upload_report(file: FileStorage) -> flask.make_response:
 
 def parse_report(file: FileStorage) -> typing.Optional[pd.DataFrame]:
     """
-    Parse an uploaded Excel file into a normalized DataFrame.
-
-    Detects the file format from the first cell and delegates to the appropriate parser.
-    Returns a DataFrame with columns [Concepto, Fecha, Importe], or None if the file is
-    invalid or the format is not recognised.
+    Parse an uploaded Excel file into a normalized DataFrame. Detects the file format from the first cell and delegates to the appropriate parser.
 
     Args:
         file (FileStorage): The uploaded report file.
@@ -181,11 +177,15 @@ def parse_report(file: FileStorage) -> typing.Optional[pd.DataFrame]:
     if not file or not file.filename:
         return None
 
-    if not file.filename.endswith((".xls", ".xlsx")):
+    if not file.filename.endswith(".csv"):
         return None
 
     try:
-        raw = pd.read_excel(file, header=None)
+        # sep=None + engine='python' lets pandas sniff the delimiter automatically,
+        # which handles both the semicolon-separated ledger and comma-separated statement.
+        raw = pd.read_csv(
+            file, header=None, sep=None, engine="python", encoding="utf-8-sig"
+        )
         if raw.empty:
             return None
 
@@ -204,16 +204,13 @@ def parse_report(file: FileStorage) -> typing.Optional[pd.DataFrame]:
 
 def _parse_account_ledger(raw: pd.DataFrame) -> typing.Optional[pd.DataFrame]:
     """
-    Parse a 4-column account ledger export.
-
-    Layout: rows 0-1 are account metadata, row 2 is the header row
-    (Concepto, Fecha, Importe, Saldo), rows 3+ are transactions.
+    Parse a semicolon-separated account ledger CSV.
 
     Args:
-        raw (DataFrame): Full raw DataFrame read with header=None.
+        raw (DataFrame): The raw DataFrame read from the CSV file.
 
     Returns:
-        Optional[DataFrame]: Normalised DataFrame or None on failure.
+        Optional[DataFrame]: The parsed DataFrame with columns [Concepto, Fecha, Importe], or None if parsing failed.
     """
     try:
         df = raw.iloc[3:].copy()
@@ -221,7 +218,7 @@ def _parse_account_ledger(raw: pd.DataFrame) -> typing.Optional[pd.DataFrame]:
         df = df[["Concepto", "Fecha", "Importe"]].reset_index(drop=True)
         df = df.replace(r"^\s*$", pd.NA, regex=True).dropna(how="all")
 
-        df["Fecha"] = pd.to_datetime(df["Fecha"])
+        df["Fecha"] = pd.to_datetime(df["Fecha"], format="%d/%m/%Y")
         df["Concepto"] = df["Concepto"].astype(str).str.strip()
         df["Importe"] = pd.to_numeric(df["Importe"]).round(2)
 
@@ -232,17 +229,13 @@ def _parse_account_ledger(raw: pd.DataFrame) -> typing.Optional[pd.DataFrame]:
 
 def _parse_transaction_statement(raw: pd.DataFrame) -> typing.Optional[pd.DataFrame]:
     """
-    Parse a tabular transaction statement export.
-
-    Layout: row 0 is the header row (Tipo, Producto, Fecha de inicio,
-    Fecha de finalización, Descripción, Importe, …), rows 1+ are transactions.
-    The Descripción header may be mangled by encoding issues; it is matched by prefix.
+    Parse a comma-separated transaction statement CSV.
 
     Args:
-        raw (DataFrame): Full raw DataFrame read with header=None.
+        raw (DataFrame): The raw DataFrame read from the CSV file.
 
     Returns:
-        Optional[DataFrame]: Normalised DataFrame or None on failure.
+        Optional[DataFrame]: The parsed DataFrame with columns [Concepto, Fecha, Importe], or None if parsing failed.
     """
     try:
         df = raw.iloc[1:].copy()
