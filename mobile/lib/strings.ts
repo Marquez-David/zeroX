@@ -43,6 +43,8 @@ export const profileStrings = {
   title: 'Profile',
   memberSince: 'Member since',
   photoUploadSoon: 'Profile photo upload coming soon',
+  changePhoto: 'Change photo',
+  photoLibraryPermission: 'Allow access to your photo library to set a profile picture.',
   sectionAccount: 'Account',
   sectionWallets: 'Wallets',
   sectionDanger: 'Danger zone',

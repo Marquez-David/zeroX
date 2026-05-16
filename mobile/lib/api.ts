@@ -177,6 +177,12 @@ export const users = {
       method: 'DELETE',
       body: JSON.stringify({ refresh_token: refreshToken }),
     }),
+
+  uploadAvatar: (formData: FormData) =>
+    request<{ msg: string }>('/users/me/avatar', {
+      method: 'PATCH',
+      body: formData,
+    }),
 };
 
 // --- Report Endpoints ---

@@ -87,6 +87,30 @@ def change_username() -> flask.make_response:
     return users.change_username(data.username)
 
 
+@BP.route("/users/me/avatar", methods=["PATCH"])
+@jwt_required()
+def upload_avatar() -> flask.make_response:
+    """
+    Upload or replace the current user's profile avatar.
+
+    Form data:
+        image (file): JPEG/PNG image file, max 2 MB.
+
+    Returns:
+        A Flask response indicating success or failure.
+    """
+    if "image" not in request.files:
+        return flask.make_response({"msg": "No image provided."}, HTTPStatus.BAD_REQUEST)
+
+    file = request.files["image"]
+    if file.content_type not in ("image/jpeg", "image/png", "image/webp"):
+        return flask.make_response(
+            {"msg": "Unsupported image type."}, HTTPStatus.BAD_REQUEST
+        )
+
+    return users.upload_avatar(file.read())
+
+
 @BP.route("/users/me", methods=["DELETE"])
 @jwt_required()
 def delete_user() -> flask.make_response:
