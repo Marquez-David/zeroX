@@ -43,6 +43,8 @@ export const profileStrings = {
   title: 'Profile',
   memberSince: 'Member since',
   photoUploadSoon: 'Profile photo upload coming soon',
+  changePhoto: 'Change photo',
+  photoLibraryPermission: 'Allow access to your photo library to set a profile picture.',
   sectionAccount: 'Account',
   sectionWallets: 'Wallets',
   sectionDanger: 'Danger zone',
@@ -69,7 +71,7 @@ export const walletsSettingsStrings = {
   xpubLabel: 'Extended public key (xpub)',
   xpubPlaceholder: 'xpub6C…',
   helper:
-    "We use this read-only key to fetch your wallet's balance and transactions from Blockstream. Your funds stay safe.",
+    "We use this read-only key to fetch your wallet's balance and transactions from Blockstream. It is stored encrypted in our database — your funds stay safe.",
   submit: 'Add wallet',
   emptyTitle: 'No wallets yet',
   emptySubtitle: 'Add your first wallet to track its balance and transactions.',

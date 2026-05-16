@@ -51,3 +51,13 @@ export function useDeleteAccountMutation() {
     },
   });
 }
+
+export function useUploadAvatarMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (formData: FormData) => usersApi.uploadAvatar(formData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.currentUser });
+    },
+  });
+}

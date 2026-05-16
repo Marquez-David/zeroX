@@ -11,7 +11,10 @@ def retrieve_categories() -> flask.make_response:
     Returns:
         A Flask response object containing the list of categories.
     """
-    categories = models.Category.query.all()
+    categories = sorted(
+        models.Category.query.all(),
+        key=lambda c: (c.name.lower() == "otros", c.name.lower()),
+    )
     return flask.make_response(
         {
             "msg": "OK",

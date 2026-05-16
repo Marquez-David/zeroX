@@ -1,3 +1,4 @@
+import base64
 import flask  # type: ignore
 from http import HTTPStatus
 
@@ -18,8 +19,12 @@ def retrieve_user() -> flask.make_response:
 
     user = models.User.query.filter_by(uuid=current_user.uuid).first()
     if not user:
-        # Check if the user exists
         return flask.make_response({"msg": "Invalid user."}, HTTPStatus.NOT_FOUND)
+
+    avatar_data = None
+    if user.avatar:
+        encoded = base64.b64encode(user.avatar).decode("utf-8")
+        avatar_data = f"data:image/jpeg;base64,{encoded}"
 
     return flask.make_response(
         {
@@ -28,6 +33,7 @@ def retrieve_user() -> flask.make_response:
                 "uuid": user.uuid,
                 "email": user.email,
                 "username": user.username,
+                "avatar": avatar_data,
             },
         },
         HTTPStatus.OK,
@@ -137,3 +143,24 @@ def delete_user(refresh_token: str) -> flask.make_response:
     DB.session.commit()
 
     return flask.make_response({"msg": "User deleted successfully."}, HTTPStatus.OK)
+
+
+def upload_avatar(image_bytes: bytes) -> flask.make_response:
+    """
+    Upload an avatar image for the current user.
+
+    Args:
+        image_bytes (bytes): The image data in bytes.
+
+    Returns:
+        flask.Response: A Flask response object with a JSON message and appropriate HTTP status code.
+    """
+    if len(image_bytes) > 2 * 1024 * 1024:
+        return flask.make_response(
+            {"msg": "Image too large (max 2 MB)."}, HTTPStatus.BAD_REQUEST
+        )
+
+    current_user.avatar = image_bytes
+    DB.session.commit()
+
+    return flask.make_response({"msg": "Avatar updated successfully."}, HTTPStatus.OK)

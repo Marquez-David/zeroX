@@ -1,17 +1,22 @@
 import {
   ArrowLeftRight,
+  Bike,
   Car,
   Coins,
   Film,
   GraduationCap,
   HeartPulse,
+  Landmark,
   Package,
   Plane,
   Plug,
   Receipt,
+  Repeat,
+  Shield,
   Shirt,
   ShoppingBag,
   Sofa,
+  Tag,
   UtensilsCrossed,
   type LucideIcon,
 } from 'lucide-react-native';
@@ -27,12 +32,14 @@ const CURRENCY_FORMATTER = new Intl.NumberFormat('en-US', {
 const MONTH_YEAR_FORMATTER = new Intl.DateTimeFormat('en-US', {
   month: 'long',
   year: 'numeric',
+  timeZone: 'UTC',
 });
 
 const DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
   day: '2-digit',
   month: 'short',
   year: 'numeric',
+  timeZone: 'UTC',
 });
 
 const FULL_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
@@ -40,6 +47,7 @@ const FULL_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
   day: 'numeric',
   month: 'long',
   year: 'numeric',
+  timeZone: 'UTC',
 });
 
 export function formatCurrency(value: number): string {
@@ -116,6 +124,11 @@ const CATEGORY_COLOR_MAP: Record<string, string> = {
   transferencias: '#84CC16',
   'viajes y billetes': '#22D3EE',
   'compras online': '#A855F7',
+  otros: '#78716C',
+  impuestos: '#DC2626',
+  seguros: '#0EA5E9',
+  moto: '#D97706',
+  suscripciones: '#7C3AED',
 };
 
 export function categoryColor(name: string | undefined | null): string {
@@ -152,11 +165,43 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   transferencias: ArrowLeftRight,
   'viajes y billetes': Plane,
   'compras online': ShoppingBag,
+  otros: Tag,
+  impuestos: Landmark,
+  seguros: Shield,
+  moto: Bike,
+  suscripciones: Repeat,
 };
 
 export function categoryIcon(name: string | undefined | null): LucideIcon {
   if (!name) return Package;
   return CATEGORY_ICONS[normalizeCategory(name)] ?? Package;
+}
+
+export type CryptoMeta = {
+  symbol: string;
+  name: string;
+  color: string;
+  bg: string;
+  cardBg: string;
+  addressType: string;
+  derivationPath: string;
+};
+
+const PREFIX_MAP: Record<string, CryptoMeta> = {
+  xpub: { symbol: 'BTC',  name: 'Bitcoin',      color: '#F7931A', bg: '#FFF7ED', cardBg: '#92400E', addressType: 'Legacy',       derivationPath: "m/44'/0'/0'" },
+  ypub: { symbol: 'BTC',  name: 'Bitcoin',      color: '#F7931A', bg: '#FFF7ED', cardBg: '#92400E', addressType: 'SegWit',        derivationPath: "m/49'/0'/0'" },
+  zpub: { symbol: 'BTC',  name: 'Bitcoin',      color: '#F7931A', bg: '#FFF7ED', cardBg: '#92400E', addressType: 'Native SegWit', derivationPath: "m/84'/0'/0'" },
+  Ltub: { symbol: 'LTC',  name: 'Litecoin',     color: '#345D9D', bg: '#EFF4FF', cardBg: '#1E3A8A', addressType: 'Legacy',       derivationPath: "m/44'/2'/0'" },
+  Mtub: { symbol: 'LTC',  name: 'Litecoin',     color: '#345D9D', bg: '#EFF4FF', cardBg: '#1E3A8A', addressType: 'SegWit',        derivationPath: "m/49'/2'/0'" },
+  dgub: { symbol: 'DOGE', name: 'Dogecoin',     color: '#C2A633', bg: '#FEF9EC', cardBg: '#78350F', addressType: 'Legacy',       derivationPath: "m/44'/3'/0'" },
+  drkv: { symbol: 'DASH', name: 'Dash',         color: '#1C75BC', bg: '#EFF6FF', cardBg: '#0F4A7A', addressType: 'Legacy',       derivationPath: "m/44'/5'/0'" },
+};
+
+export function detectCrypto(xpub: string): CryptoMeta {
+  for (const prefix of Object.keys(PREFIX_MAP)) {
+    if (xpub.startsWith(prefix)) return PREFIX_MAP[prefix];
+  }
+  return PREFIX_MAP.xpub;
 }
 
 export function getInitials(nameOrEmail: string): string {

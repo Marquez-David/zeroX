@@ -1,6 +1,8 @@
 import React from 'react';
 import {
+  ActivityIndicator,
   Alert,
+  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -8,9 +10,13 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useRouter } from 'expo-router';
+import * as ImageManipulator from 'expo-image-manipulator';
+import * as ImagePicker from 'expo-image-picker';
 import {
   Bitcoin,
+  Camera,
   Lock,
   LogOut,
   Trash2,
@@ -20,7 +26,7 @@ import {
 import SettingsRow from '@components/CustomCards/SettingsRow';
 import { useLogoutMutation } from '@hooks/queries/auth';
 import { useSession } from '@contexts/auth';
-import { useDeleteAccountMutation } from '@hooks/queries/users';
+import { useDeleteAccountMutation, useUploadAvatarMutation } from '@hooks/queries/users';
 import { useWallets } from '@hooks/queries/wallets';
 import { formatMonthYear } from '@lib/format';
 import {
@@ -39,13 +45,44 @@ const initialsFromUser = (username?: string, email?: string): string => {
 
 const Profile = () => {
   const router = useRouter();
+  const tabBarHeight = useBottomTabBarHeight();
   const { user } = useSession();
   const { data: wallets = [], isLoading: walletsLoading } = useWallets();
   const logoutMutation = useLogoutMutation();
   const deleteAccountMutation = useDeleteAccountMutation();
 
-  const onAvatarPress = () => {
-    Alert.alert(profileStrings.photoUploadSoon);
+  const uploadMutation = useUploadAvatarMutation();
+
+  const onAvatarPress = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(profileStrings.photoLibraryPermission);
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+
+    if (result.canceled || !result.assets[0]) return;
+
+    const compressed = await ImageManipulator.manipulateAsync(
+      result.assets[0].uri,
+      [{ resize: { width: 256, height: 256 } }],
+      { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
+    );
+
+    const formData = new FormData();
+    formData.append('image', {
+      uri: compressed.uri,
+      type: 'image/jpeg',
+      name: 'avatar.jpg',
+    } as unknown as Blob);
+
+    uploadMutation.mutate(formData);
   };
 
   const onDeleteAccountPress = () => {
@@ -78,14 +115,29 @@ const Profile = () => {
         <Text style={styles.title}>{profileStrings.title}</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: tabBarHeight + spacing.lg }]} showsVerticalScrollIndicator={false}>
         <View style={styles.identity}>
           <TouchableOpacity
             style={styles.avatar}
             onPress={onAvatarPress}
             activeOpacity={0.7}
+            disabled={uploadMutation.isPending}
           >
-            <Text style={styles.avatarText}>{initialsFromUser(username, email)}</Text>
+            {user?.avatar ? (
+              <Image
+                source={{ uri: user.avatar }}
+                style={styles.avatarImage}
+              />
+            ) : (
+              <Text style={styles.avatarText}>{initialsFromUser(username, email)}</Text>
+            )}
+            <View style={styles.avatarOverlay}>
+              {uploadMutation.isPending ? (
+                <ActivityIndicator size='small' color={colors.white} />
+              ) : (
+                <Camera size={16} color={colors.white} strokeWidth={2} />
+              )}
+            </View>
           </TouchableOpacity>
           <Text style={styles.username} numberOfLines={1}>
             {username || email}
@@ -126,7 +178,7 @@ const Profile = () => {
             value={walletCountLabel}
             first
             last
-            onPress={() => router.push('/settings/wallets/index')}
+            onPress={() => router.push('/settings/wallets')}
           />
         </View>
 
@@ -170,7 +222,6 @@ const styles = StyleSheet.create({
   },
   scroll: {
     paddingHorizontal: spacing.screenPadding,
-    paddingBottom: spacing.scrollBottom,
     gap: spacing.md,
   },
   identity: {
@@ -192,6 +243,24 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Bold',
     color: colors.primary[600],
     letterSpacing: -0.5,
+  },
+  avatarImage: {
+    width: 96,
+    height: 96,
+    borderRadius: 96 / 2,
+  },
+  avatarOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.primary[600],
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.white,
   },
   username: {
     ...typography.sectionTitle,

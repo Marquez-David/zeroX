@@ -85,14 +85,14 @@ const ReportsScreen = () => {
     if (selectedYear !== null) {
       const monthlyBalances = new Array(12).fill(0);
       filteredReports.forEach((r) => {
-        const m = new Date(r.date).getMonth();
+        const m = new Date(r.date).getUTCMonth();
         monthlyBalances[m] += r.balance;
       });
       return { labels: MONTH_LABELS, values: monthlyBalances };
     }
     const yearly = new Map<number, number>();
     filteredReports.forEach((r) => {
-      const y = new Date(r.date).getFullYear();
+      const y = new Date(r.date).getUTCFullYear();
       yearly.set(y, (yearly.get(y) ?? 0) + r.balance);
     });
     const sorted = Array.from(yearly.entries()).sort((a, b) => a[0] - b[0]);

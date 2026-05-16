@@ -79,9 +79,7 @@ const AddWalletScreen = () => {
                   placeholder={walletsSettingsStrings.xpubPlaceholder}
                   autoCapitalize='none'
                   autoCorrect={false}
-                  multiline
                   error={submitCount > 0 ? errors.xpub : undefined}
-                  style={styles.xpubInput}
                 />
                 <Text style={styles.helper}>{walletsSettingsStrings.helper}</Text>
                 {serverError ? <Text style={styles.error}>{serverError}</Text> : null}
@@ -133,10 +131,6 @@ const styles = StyleSheet.create({
   scroll: {
     padding: spacing.screenPadding,
     gap: spacing.md,
-  },
-  xpubInput: {
-    minHeight: 80,
-    textAlignVertical: 'top',
   },
   helper: {
     ...typography.caption,

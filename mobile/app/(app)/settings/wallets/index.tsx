@@ -1,45 +1,30 @@
 import React from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Bitcoin, ChevronLeft, Plus } from 'lucide-react-native';
+import { Bitcoin, ChevronLeft } from 'lucide-react-native';
+
+import PrimaryButton from '@components/CustomButtons/PrimaryButton';
 
 import WalletRow from '@components/CustomCards/WalletRow';
-import {
-  useDeleteWalletMutation,
-  useWallets,
-} from '@hooks/queries/wallets';
+import { useWallets } from '@hooks/queries/wallets';
 import { walletsSettingsStrings } from '@lib/strings';
 import { colors, spacing, typography } from '@lib/theme';
 
 const WalletsListScreen = () => {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { data: wallets = [], isLoading } = useWallets();
-  const deleteMutation = useDeleteWalletMutation();
-
-  const confirmDelete = (uuid: string) => {
-    Alert.alert(
-      walletsSettingsStrings.deleteWalletPrompt,
-      walletsSettingsStrings.deleteWalletBody,
-      [
-        { text: walletsSettingsStrings.cancel, style: 'cancel' },
-        {
-          text: walletsSettingsStrings.confirm,
-          style: 'destructive',
-          onPress: () => deleteMutation.mutate(uuid),
-        },
-      ],
-    );
-  };
-
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
@@ -47,13 +32,6 @@ const WalletsListScreen = () => {
           <ChevronLeft size={24} color={colors.text.primary} />
         </TouchableOpacity>
         <Text style={styles.title}>{walletsSettingsStrings.title}</Text>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => router.push('/settings/wallets/add')}
-          activeOpacity={0.7}
-        >
-          <Plus size={20} color={colors.primary[600]} strokeWidth={2.5} />
-        </TouchableOpacity>
       </View>
 
       <FlatList
@@ -69,7 +47,6 @@ const WalletsListScreen = () => {
                 params: { uuid: item.uuid },
               })
             }
-            onDelete={() => confirmDelete(item.uuid)}
           />
         )}
         contentContainerStyle={styles.list}
@@ -93,6 +70,17 @@ const WalletsListScreen = () => {
           )
         }
       />
+      <View
+        style={[
+          styles.footer,
+          { paddingBottom: Math.max(insets.bottom, spacing.lg) + spacing.xs },
+        ]}
+      >
+        <PrimaryButton
+          title={walletsSettingsStrings.submit}
+          onPress={() => router.push('/settings/wallets/add')}
+        />
+      </View>
     </SafeAreaView>
   );
 };
@@ -118,13 +106,9 @@ const styles = StyleSheet.create({
     ...typography.heading,
     flex: 1,
   },
-  addButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 36 / 2,
-    backgroundColor: colors.primary[50],
-    alignItems: 'center',
-    justifyContent: 'center',
+  footer: {
+    paddingHorizontal: spacing.screenPadding,
+    paddingTop: spacing.screenPadding,
   },
   list: {
     padding: spacing.screenPadding,

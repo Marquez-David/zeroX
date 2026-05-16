@@ -28,6 +28,7 @@ class User(DB.Model):
         password_hash (str): The hashed password of the user.
         password_attempts (int): The number of password attempts made by the user.
         locked (datetime): Time until which the user is locked out.
+        avatar (bytes): The avatar image of the user.
     """
 
     __tablename__ = "users"
@@ -44,6 +45,9 @@ class User(DB.Model):
     password_attempts: int = DB.Column(DB.Integer, default=0, nullable=False)
     locked: typing.Optional[datetime] = DB.Column(
         DB.DateTime(timezone=True), nullable=True, default=None
+    )
+    avatar: typing.Optional[bytes] = DB.Column(
+        DB.LargeBinary, nullable=True, default=None
     )
     reports = DB.relationship(
         "Report", back_populates="user", cascade="all, delete-orphan"

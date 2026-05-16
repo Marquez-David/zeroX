@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { Image, View, Text, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Eye, EyeOff } from 'lucide-react-native';
 
@@ -13,20 +13,26 @@ import styles from './styles';
 type BalanceHeaderProps = {
   userName: string;
   totalBalance: number;
+  avatarUri?: string | null;
 };
 
-const Avatar = ({ name }: { name: string }) => (
-  <LinearGradient
-    colors={[colors.primary[500], colors.primary[700]]}
-    start={{ x: 0, y: 0 }}
-    end={{ x: 1, y: 1 }}
-    style={styles.avatar}
-  >
-    <Text style={styles.avatarText}>{getInitials(name)}</Text>
-  </LinearGradient>
-);
+const Avatar = ({ name, uri }: { name: string; uri?: string | null }) => {
+  if (uri) {
+    return <Image source={{ uri }} style={styles.avatar} />;
+  }
+  return (
+    <LinearGradient
+      colors={[colors.primary[500], colors.primary[700]]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.avatar}
+    >
+      <Text style={styles.avatarText}>{getInitials(name)}</Text>
+    </LinearGradient>
+  );
+};
 
-const BalanceHeader = ({ userName, totalBalance }: BalanceHeaderProps) => {
+const BalanceHeader = ({ userName, totalBalance, avatarUri }: BalanceHeaderProps) => {
   const [visible, setVisible] = useState(true);
 
   return (
@@ -35,7 +41,7 @@ const BalanceHeader = ({ userName, totalBalance }: BalanceHeaderProps) => {
         <View style={styles.logoBadge}>
           <Logo width={160} height={34} />
         </View>
-        <Avatar name={userName} />
+        <Avatar name={userName} uri={avatarUri} />
       </View>
 
       <View style={styles.balanceRow}>
