@@ -247,7 +247,6 @@ class Wallet(DB.Model):
         Returns:
             str: The hashed xpub.
         """
-        # Argon2 is not suitable for this purpose due to its deterministic.
         return hashlib.sha512(xpub.encode()).hexdigest()
 
 

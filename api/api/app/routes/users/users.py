@@ -62,7 +62,8 @@ def change_password() -> flask.make_response:
         msg = str(e.errors()[0].get("ctx").get("error"))
         return flask.make_response({"msg": msg}, HTTPStatus.BAD_REQUEST)
 
-    return users.change_password(data.old_password, data.new_password)
+    refresh_token = request.json.get("refresh_token")
+    return users.change_password(data.old_password, data.new_password, refresh_token)
 
 
 @BP.route("/users/me/username", methods=["PATCH"])

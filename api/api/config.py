@@ -27,7 +27,7 @@ JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY")
 WALLET_API_URL = os.environ.get("WALLET_API_URL", "https://mempool.space/api/address/")
 
 # CORS allowed origins
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS").split(",")
+ALLOWED_ORIGINS_RAW = os.getenv("ALLOWED_ORIGINS")
 
 
 class config:
@@ -64,4 +64,6 @@ class config:
     NUM_ADDRESSES_TO_DERIVE = 25
 
     # CORS configuration
-    CORS_ORIGINS = ALLOWED_ORIGINS
+    CORS_ORIGINS = [
+        origin.strip() for origin in ALLOWED_ORIGINS_RAW.split(",") if origin.strip()
+    ]
