@@ -243,7 +243,8 @@ def _parse_transaction_statement(raw: pd.DataFrame) -> typing.Optional[pd.DataFr
         df = df.reset_index(drop=True)
 
         desc_col = next(c for c in df.columns if str(c).startswith("Descripci"))
-        df = df.rename(columns={"Fecha de inicio": "Fecha", desc_col: "Concepto"})
+        fecha_col = next(c for c in df.columns if str(c).startswith("Fecha de inicio"))
+        df = df.rename(columns={fecha_col: "Fecha", desc_col: "Concepto"})
         df = df[["Concepto", "Fecha", "Importe"]].copy()
         df = df.replace(r"^\s*$", pd.NA, regex=True).dropna(how="all")
 

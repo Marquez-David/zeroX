@@ -235,10 +235,13 @@ export const reports = {
 
   upload: async (fileUri: string, fileName: string) => {
     const formData = new FormData();
+    const mimeType = fileName.endsWith('.csv')
+      ? 'text/csv'
+      : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
     formData.append('file', {
       uri: fileUri,
       name: fileName,
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      type: mimeType,
     } as unknown as Blob);
     return request<{ msg: string }>('/reports', {
       method: 'POST',
