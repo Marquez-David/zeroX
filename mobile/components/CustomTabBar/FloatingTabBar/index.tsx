@@ -43,11 +43,7 @@ const FloatingTabBar = ({ state, navigation }: BottomTabBarProps) => {
     if (uploadMutation.isPending) return;
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: [
-          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-          'application/vnd.ms-excel',
-          'application/octet-stream',
-        ],
+        type: '*/*',
         multiple: false,
         copyToCacheDirectory: true,
       });
