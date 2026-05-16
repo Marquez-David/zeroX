@@ -288,6 +288,7 @@ const CategoryPickerSheet = ({
         </Text>
         <ScrollView
           style={styles.pickerList}
+          contentContainerStyle={styles.pickerListContent}
           showsVerticalScrollIndicator={false}
         >
           {categories.map((cat) => {

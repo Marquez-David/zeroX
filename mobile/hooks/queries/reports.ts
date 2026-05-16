@@ -129,7 +129,7 @@ export function useYearStats(year: number | null) {
     const years = new Set<number>();
     allReportsQuery.data?.pages.forEach((page) =>
       page.reports.forEach((r) =>
-        years.add(new Date(r.date).getFullYear()),
+        years.add(new Date(r.date).getUTCFullYear()),
       ),
     );
     return Array.from(years).sort((a, b) => b - a);

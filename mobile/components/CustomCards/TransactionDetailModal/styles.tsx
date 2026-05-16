@@ -169,6 +169,9 @@ const styles = StyleSheet.create({
   pickerList: {
     flexGrow: 0,
   },
+  pickerListContent: {
+    paddingBottom: spacing.lg,
+  },
   pickerOption: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -176,7 +179,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     borderRadius: radii.md,
-    marginBottom: spacing.xs,
   },
   pickerOptionSelected: {
     backgroundColor: colors.primary[50],

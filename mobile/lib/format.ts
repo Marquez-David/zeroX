@@ -1,17 +1,22 @@
 import {
   ArrowLeftRight,
+  Bike,
   Car,
   Coins,
   Film,
   GraduationCap,
   HeartPulse,
+  Landmark,
   Package,
   Plane,
   Plug,
   Receipt,
+  Repeat,
+  Shield,
   Shirt,
   ShoppingBag,
   Sofa,
+  Tag,
   UtensilsCrossed,
   type LucideIcon,
 } from 'lucide-react-native';
@@ -27,12 +32,14 @@ const CURRENCY_FORMATTER = new Intl.NumberFormat('en-US', {
 const MONTH_YEAR_FORMATTER = new Intl.DateTimeFormat('en-US', {
   month: 'long',
   year: 'numeric',
+  timeZone: 'UTC',
 });
 
 const DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
   day: '2-digit',
   month: 'short',
   year: 'numeric',
+  timeZone: 'UTC',
 });
 
 const FULL_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
@@ -40,6 +47,7 @@ const FULL_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
   day: 'numeric',
   month: 'long',
   year: 'numeric',
+  timeZone: 'UTC',
 });
 
 export function formatCurrency(value: number): string {
@@ -116,6 +124,11 @@ const CATEGORY_COLOR_MAP: Record<string, string> = {
   transferencias: '#84CC16',
   'viajes y billetes': '#22D3EE',
   'compras online': '#A855F7',
+  otros: '#78716C',
+  impuestos: '#DC2626',
+  seguros: '#0EA5E9',
+  moto: '#D97706',
+  suscripciones: '#7C3AED',
 };
 
 export function categoryColor(name: string | undefined | null): string {
@@ -152,6 +165,11 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   transferencias: ArrowLeftRight,
   'viajes y billetes': Plane,
   'compras online': ShoppingBag,
+  otros: Tag,
+  impuestos: Landmark,
+  seguros: Shield,
+  moto: Bike,
+  suscripciones: Repeat,
 };
 
 export function categoryIcon(name: string | undefined | null): LucideIcon {
