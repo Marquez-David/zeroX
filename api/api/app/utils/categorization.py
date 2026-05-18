@@ -1,6 +1,14 @@
 import re
 import typing
 
+_INTER_ACCOUNT_KEYWORDS = (
+    "recarga de",
+    "revolut",
+    "transferencia entre cuentas",
+    "autotraspaso",
+    "autotransferencia",
+)
+
 
 def normalize_concept(concept: typing.Optional[str]) -> str:
     """
@@ -21,3 +29,19 @@ def normalize_concept(concept: typing.Optional[str]) -> str:
     s = re.sub(r"(?<!\w)[/\-]+(?!\w)", "", s)
     s = " ".join(s.split())
     return s.strip()
+
+
+def is_inter_account_transfer(concept: typing.Optional[str]) -> bool:
+    """
+    Determine if a given concept string indicates an inter-account transfer.
+
+    Args:
+        concept (str): The input concept string to check.
+
+    Returns:
+        bool: True if the concept indicates an inter-account transfer, False otherwise.
+    """
+    if not concept:
+        return False
+
+    return any(kw in concept.lower() for kw in _INTER_ACCOUNT_KEYWORDS)

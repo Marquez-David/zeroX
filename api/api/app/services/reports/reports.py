@@ -11,7 +11,11 @@ from werkzeug.datastructures import FileStorage  # type: ignore
 
 from app import models
 from app.db import DB
-from app.utils import apply_cursor_pagination, normalize_concept
+from app.utils import (
+    apply_cursor_pagination,
+    is_inter_account_transfer,
+    normalize_concept,
+)
 
 
 def retrieve_reports(
@@ -367,6 +371,10 @@ def _create_operation(report: models.Report, operations_df: pd.DataFrame) -> Non
         date = pd.to_datetime(row["Fecha"]).to_pydatetime()
         concept = row["Concepto"].strip()
         amount = float(row["Importe"])
+
+        if is_inter_account_transfer(concept):
+            # Skip operation creation for inter-account transfers.
+            continue
 
         if (date, concept, amount) in existing_ops:
             continue
