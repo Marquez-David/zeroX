@@ -1,3 +1,4 @@
+import difflib
 import flask  # type: ignore
 import typing
 from datetime import datetime
@@ -10,7 +11,7 @@ from werkzeug.datastructures import FileStorage  # type: ignore
 
 from app import models
 from app.db import DB
-from app.utils import apply_cursor_pagination
+from app.utils import apply_cursor_pagination, normalize_concept
 
 
 def retrieve_reports(
@@ -290,6 +291,37 @@ def _create_report(date: pd.Period, operations_df: pd.DataFrame) -> models.Repor
     return report
 
 
+def _resolve_category(concept: str, history: dict, otros_id: int) -> int:
+    """
+    Resolve a category ID for a given operation concept using the user's history of categorized operations.
+
+    Args:
+        concept (str): The operation concept to categorize.
+        history (dict): A mapping of normalized past concepts to category IDs.
+        otros_id (int): The category ID for "Otros".
+
+    Returns:
+        int: The resolved category ID.
+    """
+    if not concept:
+        return otros_id
+
+    c_norm = normalize_concept(concept)
+
+    if c_norm in history:
+        return history[c_norm]
+
+    best_ratio = 0.0
+    best_cat_id = otros_id
+    for h_norm, h_cat_id in history.items():
+        ratio = difflib.SequenceMatcher(None, c_norm, h_norm).ratio()
+        if ratio > best_ratio:
+            best_ratio = ratio
+            best_cat_id = h_cat_id
+
+    return best_cat_id if best_ratio >= 0.75 else otros_id
+
+
 def _create_operation(report: models.Report, operations_df: pd.DataFrame) -> None:
     """
     Create operations for a given report and recompute the report's aggregates.
@@ -298,11 +330,35 @@ def _create_operation(report: models.Report, operations_df: pd.DataFrame) -> Non
         report (models.Report): The report to attach the operations to.
         operations_df (DataFrame): The DataFrame containing operations for the report.
     """
+    otros = models.Category.query.filter_by(name="Otros").first()
+    if not otros:
+        otros = models.Category.query.first()
 
-    random_cat = models.Category.query.first()
+    if not otros:
+        raise RuntimeError("No categories seeded in database.")
+
+    otros_id = otros.id
+
+    history_rows = (
+        models.Operation.query.join(
+            models.Report, models.Report.id == models.Operation.report_id
+        )
+        .filter(
+            models.Report.user_id == current_user.id,
+            models.Operation.category_id != otros_id,
+            models.Operation.concept.isnot(None),
+        )
+        .order_by(models.Operation.date.asc())  # asc: newest row overwrites in dict
+        .with_entities(models.Operation.concept, models.Operation.category_id)
+        .all()
+    )
+    history = {
+        normalize_concept(row.concept): row.category_id
+        for row in history_rows
+        if row.concept
+    }
 
     existing_ops = set()
-
     operations = models.Operation.query.filter_by(report_id=report.id).all()
     for operation in operations:
         existing_ops.add((operation.date, operation.concept, operation.amount))
@@ -313,17 +369,18 @@ def _create_operation(report: models.Report, operations_df: pd.DataFrame) -> Non
         amount = float(row["Importe"])
 
         if (date, concept, amount) in existing_ops:
-            # Check if operation already exists
             continue
 
         existing_ops.add((date, concept, amount))
+
+        category_id = _resolve_category(concept, history, otros_id)
 
         operation = models.Operation(
             amount=amount,
             concept=concept,
             date=date,
             report_id=report.id,
-            category_id=random_cat.id,
+            category_id=category_id,
         )
         DB.session.add(operation)
 
