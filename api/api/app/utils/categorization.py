@@ -7,12 +7,13 @@ _INTER_ACCOUNT_KEYWORDS = (
     "transferencia entre cuentas",
     "autotraspaso",
     "autotransferencia",
+    "PAYPAL EUROPE",
 )
 
 
 def normalize_concept(concept: typing.Optional[str]) -> str:
     """
-    Normalize a concept string by removing dates, long numbers, short numbers, and standalone slashes or dashes.
+    Normalize a concept string by removing dates, numbers and standalone slashes or dashes.
 
     Args:
         concept (str): The input concept string to normalize.
