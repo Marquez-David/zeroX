@@ -345,6 +345,7 @@ def _create_report(date: pd.Period, operations_df: pd.DataFrame) -> models.Repor
     ).first()
 
     if not report:
+        # If no report exists for the month, create a new one with aggregates from the operations.
         amounts = operations_df["Importe"]
         report = models.Report(
             income=float(round(amounts[amounts > 0].sum(), 2)),
