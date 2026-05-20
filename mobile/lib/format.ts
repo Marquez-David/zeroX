@@ -3,6 +3,7 @@ import {
   Bike,
   Car,
   Coins,
+  Dumbbell,
   Film,
   GraduationCap,
   HeartPulse,
@@ -129,6 +130,7 @@ const CATEGORY_COLOR_MAP: Record<string, string> = {
   seguros: '#0EA5E9',
   moto: '#D97706',
   suscripciones: '#7C3AED',
+  deporte: '#16A34A',
 };
 
 export function categoryColor(name: string | undefined | null): string {
@@ -170,6 +172,7 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   seguros: Shield,
   moto: Bike,
   suscripciones: Repeat,
+  deporte: Dumbbell,
 };
 
 export function categoryIcon(name: string | undefined | null): LucideIcon {
