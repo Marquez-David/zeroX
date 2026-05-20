@@ -200,6 +200,8 @@ def parse_report(file: FileStorage) -> typing.Optional[pd.DataFrame]:
             return _parse_account_ledger(raw)
         elif first_cell == "Tipo":
             return _parse_transaction_statement(raw)
+        elif first_cell == "Fecha" and "Id. de transacción" in raw.iloc[0].tolist():
+            return _parse_paypal(raw)
         else:
             return None
 
@@ -258,6 +260,66 @@ def _parse_transaction_statement(raw: pd.DataFrame) -> typing.Optional[pd.DataFr
         df["Importe"] = pd.to_numeric(df["Importe"]).round(2)
 
         return df
+    except Exception:
+        return None
+
+
+def _parse_paypal(raw: pd.DataFrame) -> typing.Optional[pd.DataFrame]:
+    """
+    Parse a PayPal activity CSV export.
+
+    Args:
+        raw (DataFrame): The raw DataFrame read from the CSV file.
+
+    Returns:
+        Optional[DataFrame]: The parsed DataFrame with columns [Concepto, Fecha, Importe], or None if parsing failed.
+    """
+    try:
+        df = raw.iloc[1:].copy()
+        df.columns = raw.iloc[0].tolist()
+        df = df.reset_index(drop=True)
+
+        fx_mask = (
+            df["Tipo"].astype(str).str.contains("Conversión de divisas", na=False)
+            & (df["Repercusiones en el saldo"] == "Cargo")
+            & (df["Divisa"] == "EUR")
+        )
+        fx_map = dict(
+            zip(
+                df.loc[fx_mask, "Id. de referencia de trans."],
+                df.loc[fx_mask, "Bruto"],
+            )
+        )
+
+        nombre_present = df["Nombre"].notna() & (
+            df["Nombre"].astype(str).str.strip() != ""
+        )
+        cargo_df = df[(df["Repercusiones en el saldo"] == "Cargo") & nombre_present]
+
+        rows = []
+        for _, row in cargo_df.iterrows():
+            if row["Divisa"] == "EUR":
+                bruto_str = row["Bruto"]
+            else:
+                tx_id = row["Id. de transacción"]
+                if tx_id not in fx_map:
+                    continue
+                bruto_str = fx_map[tx_id]
+
+            amount = round(
+                float(str(bruto_str).strip().replace(".", "").replace(",", ".")), 2
+            )
+            fecha = datetime.strptime(
+                f"{row['Fecha']} {row['Hora']}", "%d/%m/%Y %H:%M:%S"
+            )
+            concept = str(row["Nombre"]).strip()[:128]
+            rows.append({"Concepto": concept, "Fecha": fecha, "Importe": amount})
+
+        if not rows:
+            return None
+
+        return pd.DataFrame(rows)
+
     except Exception:
         return None
 
