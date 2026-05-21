@@ -1,5 +1,5 @@
-import React from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as DocumentPicker from 'expo-document-picker';
@@ -7,6 +7,7 @@ import { Bitcoin, House, LayoutGrid, Plus, User } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 
+import { useModal } from '@contexts/modal';
 import { useUploadReportMutation } from '@hooks/queries/reports';
 import { colors } from '@lib/theme';
 
@@ -32,6 +33,24 @@ const NAV_TABS: TabSpec[] = [
 const FloatingTabBar = ({ state, navigation }: BottomTabBarProps) => {
   const insets = useSafeAreaInsets();
   const uploadMutation = useUploadReportMutation();
+  const { toast, setToastOffset } = useModal();
+  const tabBarHeightRef = useRef(0);
+
+  useEffect(() => {
+    // navigation is the tab navigator's own nav (NavigationHelpers, no addListener).
+    // getParent() returns the Stack's nav for the (tabs) screen, which emits
+    // focus/blur when a non-tab Stack screen covers or uncovers the tab navigator.
+    const parentNav = (navigation as any).getParent?.();
+    if (!parentNav) return;
+    const unsubFocus = parentNav.addListener('focus', () =>
+      setToastOffset(tabBarHeightRef.current),
+    );
+    const unsubBlur = parentNav.addListener('blur', () => setToastOffset(0));
+    return () => {
+      unsubFocus();
+      unsubBlur();
+    };
+  }, [navigation, setToastOffset]);
 
   const handleNavigate = (routeName: string) => {
     const routeIndex = state.routes.findIndex((r) => r.name === routeName);
@@ -50,13 +69,15 @@ const FloatingTabBar = ({ state, navigation }: BottomTabBarProps) => {
       if (result.canceled) return;
       const asset = result.assets[0];
       if (!asset) return;
+      toast({ message: 'Uploading report…', sub: asset.name, type: 'loading' });
       await uploadMutation.mutateAsync({ uri: asset.uri, name: asset.name });
-      Alert.alert('Report uploaded');
+      toast({ message: 'Report uploaded', type: 'success' });
     } catch {
-      Alert.alert(
-        'Could not upload report',
-        'Please try again or pick a different file.',
-      );
+      toast({
+        message: 'Upload failed',
+        sub: 'Please try a different file.',
+        type: 'error',
+      });
     }
   };
 
@@ -90,6 +111,11 @@ const FloatingTabBar = ({ state, navigation }: BottomTabBarProps) => {
   return (
     <View
       style={[styles.wrapper, { paddingBottom: Math.max(insets.bottom, 4) }]}
+      onLayout={(e) => {
+        const h = e.nativeEvent.layout.height;
+        tabBarHeightRef.current = h;
+        setToastOffset(h);
+      }}
     >
       <View style={styles.bar}>
         {renderTab(left1)}

@@ -6,15 +6,9 @@ const BACKDROP_COLOR = 'rgba(0,0,0,0.45)';
 const NOTCH_SIZE = 22;
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: BACKDROP_COLOR,
-  },
+  root: { flex: 1, backgroundColor: BACKDROP_COLOR },
   flex: { flex: 1 },
-  safeArea: {
-    flex: 1,
-    justifyContent: 'center',
-  },
+  safeArea: { flex: 1, justifyContent: 'center' },
   cardShadow: {
     marginHorizontal: spacing.lg,
     borderRadius: radii.xl,
@@ -28,11 +22,22 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
 
+  // Hero
   hero: {
     alignItems: 'center',
     gap: spacing.xs,
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.lg,
+  },
+  heroAmount: {
+    fontSize: 32,
+    fontFamily: 'Inter-Bold',
+    letterSpacing: -1,
+  },
+  heroType: {
+    fontSize: 12,
+    fontFamily: 'Inter-SemiBold',
+    color: colors.text.secondary,
   },
   typePill: {
     flexDirection: 'row',
@@ -41,23 +46,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
     borderRadius: radii.pill,
+    marginTop: spacing.xs,
   },
   typePillText: {
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: 'Inter-SemiBold',
-  },
-  heroType: {
-    fontSize: 13,
-    fontFamily: 'Inter-SemiBold',
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-  },
-  heroAmount: {
-    fontSize: 30,
-    fontFamily: 'Inter-Bold',
-    letterSpacing: -0.5,
   },
 
+  // Seam
   seam: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -73,12 +69,8 @@ const styles = StyleSheet.create({
     top: '50%',
     marginTop: -NOTCH_SIZE / 2,
   },
-  notchLeft: {
-    left: -NOTCH_SIZE / 2,
-  },
-  notchRight: {
-    right: -NOTCH_SIZE / 2,
-  },
+  notchLeft:  { left: -NOTCH_SIZE / 2 },
+  notchRight: { right: -NOTCH_SIZE / 2 },
   dashed: {
     flex: 1,
     flexDirection: 'row',
@@ -92,26 +84,27 @@ const styles = StyleSheet.create({
     backgroundColor: colors.gray[300],
   },
 
-  details: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-  },
+  // Detail rows
+  details: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.md,
     paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.gray[100],
   },
+  detailRowLast: { borderBottomWidth: 0 },
   detailLabel: {
-    ...typography.caption,
-    fontFamily: 'Inter-Medium',
+    fontSize: 9,
+    fontFamily: 'Inter-SemiBold',
     color: colors.text.muted,
-    letterSpacing: 1.2,
+    letterSpacing: 1.0,
     textTransform: 'uppercase',
   },
   detailValue: {
-    fontSize: 15,
+    fontSize: 12,
     fontFamily: 'Inter-SemiBold',
     color: colors.text.primary,
     flexShrink: 1,
@@ -119,24 +112,26 @@ const styles = StyleSheet.create({
   },
   detailValueMono: {
     fontFamily: 'Inter-Medium',
-    letterSpacing: 1.2,
+    letterSpacing: 1.0,
     color: colors.text.secondary,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.sm,
-  },
-  statusBlock: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
+    fontSize: 11,
   },
   statusDot: {
-    width: 8,
-    height: 8,
+    width: 7,
+    height: 7,
     borderRadius: radii.full,
+  },
+  statusChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+    borderRadius: radii.sm,
+  },
+  statusChipText: {
+    fontSize: 11,
+    fontFamily: 'Inter-SemiBold',
   },
 });
 

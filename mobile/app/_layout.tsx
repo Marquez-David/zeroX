@@ -7,6 +7,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryClientProvider } from '@tanstack/react-query';
 
 import { SessionProvider, useSession } from '@contexts/auth';
+import { ModalProvider } from '@contexts/modal';
 import { queryClient } from '@lib/queryClient';
 
 import { Stack } from 'expo-router';
@@ -30,8 +31,10 @@ const RootLayout = () => {
       <QueryClientProvider client={queryClient}>
         <SafeAreaProvider>
           <SessionProvider>
-            <StatusBar style='dark' />
-            <RootNavigator />
+            <ModalProvider>
+              <StatusBar style='dark' />
+              <RootNavigator />
+            </ModalProvider>
           </SessionProvider>
         </SafeAreaProvider>
       </QueryClientProvider>

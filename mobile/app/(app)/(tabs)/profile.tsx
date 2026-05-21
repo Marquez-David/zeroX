@@ -27,6 +27,7 @@ import SettingsRow from '@components/CustomCards/SettingsRow';
 import { useLogoutMutation } from '@hooks/queries/auth';
 import { useSession } from '@contexts/auth';
 import { useDeleteAccountMutation, useUploadAvatarMutation } from '@hooks/queries/users';
+import { useModal } from '@contexts/modal';
 import { useWallets } from '@hooks/queries/wallets';
 import { formatMonthYear } from '@lib/format';
 import {
@@ -50,6 +51,8 @@ const Profile = () => {
   const { data: wallets = [], isLoading: walletsLoading } = useWallets();
   const logoutMutation = useLogoutMutation();
   const deleteAccountMutation = useDeleteAccountMutation();
+
+  const { confirm, toast } = useModal();
 
   const uploadMutation = useUploadAvatarMutation();
 
@@ -86,18 +89,19 @@ const Profile = () => {
   };
 
   const onDeleteAccountPress = () => {
-    Alert.alert(
-      deleteAccountStrings.title,
-      deleteAccountStrings.body,
-      [
-        { text: deleteAccountStrings.cancel, style: 'cancel' },
-        {
-          text: deleteAccountStrings.confirm,
-          style: 'destructive',
-          onPress: () => deleteAccountMutation.mutate(),
-        },
-      ],
-    );
+    confirm({
+      title: deleteAccountStrings.title,
+      body: deleteAccountStrings.body,
+      confirmLabel: deleteAccountStrings.confirm,
+      cancelLabel: deleteAccountStrings.cancel,
+      variant: 'destructive',
+      onConfirm: () => {
+        toast({ message: 'Deleting account…', type: 'loading' });
+        deleteAccountMutation.mutate(undefined, {
+          onError: () => toast({ message: 'Could not delete account', type: 'error' }),
+        });
+      },
+    });
   };
 
   const username = user?.username ?? '';

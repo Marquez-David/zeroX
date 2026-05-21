@@ -19,22 +19,29 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.white,
     borderRadius: radii.xl,
-    padding: spacing.xl,
-    gap: spacing.md,
     overflow: 'hidden',
   },
-  iconCircle: {
-    alignSelf: 'center',
-    width: 56,
-    height: 56,
-    borderRadius: 56 / 2,
-    backgroundColor: colors.error[50],
+  header: {
+    padding: spacing.xl,
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  iconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: {
+  headerTitle: {
     ...typography.sectionTitle,
+    color: colors.white,
     textAlign: 'center',
+  },
+  bodySection: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.md,
   },
   body: {
     ...typography.bodyRegular,
@@ -43,7 +50,11 @@ const styles = StyleSheet.create({
   buttons: {
     flexDirection: 'row',
     gap: spacing.sm,
-    marginTop: spacing.xs,
+    padding: spacing.lg,
+    paddingTop: spacing.md,
+  },
+  buttonsNoBody: {
+    paddingTop: spacing.lg,
   },
   button: {
     flex: 1,
@@ -75,9 +86,6 @@ const styles = StyleSheet.create({
     ...typography.body,
     fontFamily: 'Inter-SemiBold',
     color: colors.white,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
   },
 });
 

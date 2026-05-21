@@ -26,6 +26,7 @@ import {
   useResendVerificationMutation,
   useVerifyEmailMutation,
 } from '@hooks/queries/auth';
+import { useModal } from '@contexts/modal';
 import { loginStrings, registerStrings, verifyStrings } from '@lib/strings';
 import { colors, radii, shadows, spacing, typography } from '@lib/theme';
 
@@ -37,18 +38,16 @@ const LoginScreen = () => {
   const verifyMutation = useVerifyEmailMutation();
   const resendMutation = useResendVerificationMutation();
 
+  const { toast } = useModal();
+
   const [mode, setMode] = useState<Mode>('login');
-  const [serverError, setServerError] = useState<string | null>(null);
-  const [infoBanner, setInfoBanner] = useState<string | null>(null);
   const [pendingEmail, setPendingEmail] = useState<string>('');
 
   const handleLogin = async (values: { email: string; password: string }) => {
-    setServerError(null);
-    setInfoBanner(null);
     try {
       await loginMutation.mutateAsync(values);
     } catch (err) {
-      setServerError(loginStrings.loginError);
+      toast({ message: loginStrings.loginError, type: 'error' });
       throw err;
     }
   };
@@ -58,32 +57,28 @@ const LoginScreen = () => {
     password: string;
     confirmPassword: string;
   }) => {
-    setServerError(null);
-    setInfoBanner(null);
     try {
       await registerMutation.mutateAsync(values);
       setPendingEmail(values.email);
       setMode('verify');
     } catch (err) {
-      setServerError(
-        err instanceof Error && err.message
-          ? err.message
-          : registerStrings.registerError,
-      );
+      toast({
+        message: err instanceof Error && err.message ? err.message : registerStrings.registerError,
+        type: 'error',
+      });
     }
   };
 
   const handleVerify = async (values: { code: string }) => {
-    setServerError(null);
     try {
       await verifyMutation.mutateAsync({
         email: pendingEmail,
         code: values.code,
       });
-      setInfoBanner(verifyStrings.successBanner);
+      toast({ message: verifyStrings.successBanner, type: 'success' });
       setMode('login');
     } catch {
-      setServerError(verifyStrings.verifyError);
+      toast({ message: verifyStrings.verifyError, type: 'error' });
     }
   };
 
@@ -92,8 +87,6 @@ const LoginScreen = () => {
   };
 
   const goTo = (next: Mode) => {
-    setServerError(null);
-    setInfoBanner(null);
     setMode(next);
   };
 
@@ -173,20 +166,11 @@ const LoginScreen = () => {
             </View>
 
             <View style={styles.middleSection}>
-              {infoBanner && mode === 'login' && (
-                <View style={styles.infoBanner}>
-                  <Text style={styles.infoBannerText}>{infoBanner}</Text>
-                </View>
-              )}
-
               {mode === 'login' && (
-                <LoginForm onSubmit={handleLogin} serverError={serverError} />
+                <LoginForm onSubmit={handleLogin} />
               )}
               {mode === 'register' && (
-                <RegisterForm
-                  onSubmit={handleRegister}
-                  serverError={serverError}
-                />
+                <RegisterForm onSubmit={handleRegister} />
               )}
               {mode === 'verify' && (
                 <VerifyEmailForm
@@ -194,7 +178,6 @@ const LoginScreen = () => {
                   onSubmit={handleVerify}
                   onResend={handleResend}
                   onChangeEmail={() => goTo('register')}
-                  serverError={serverError}
                 />
               )}
 
@@ -318,17 +301,6 @@ const styles = StyleSheet.create({
   middleSection: {
     flex: 1,
     justifyContent: 'center',
-  },
-  infoBanner: {
-    backgroundColor: colors.success[50],
-    borderRadius: radii.md,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  infoBannerText: {
-    ...typography.small,
-    color: colors.success[500],
-    textAlign: 'center',
   },
   socialSection: {
     marginTop: spacing.lg,

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text } from 'react-native';
+import { View } from 'react-native';
 import { Formik } from 'formik';
 
 import { loginStrings, validationStrings } from '@lib/strings';
@@ -16,7 +16,6 @@ type LoginValues = {
 
 type LoginFormProps = {
   onSubmit: (values: LoginValues) => Promise<void> | void;
-  serverError?: string | null;
 };
 
 const validate = (values: LoginValues) => {
@@ -28,7 +27,7 @@ const validate = (values: LoginValues) => {
   return errors;
 };
 
-const LoginForm = ({ onSubmit, serverError }: LoginFormProps) => {
+const LoginForm = ({ onSubmit }: LoginFormProps) => {
   const [loading, setLoading] = useState(false);
 
   return (
@@ -49,11 +48,6 @@ const LoginForm = ({ onSubmit, serverError }: LoginFormProps) => {
     >
       {({ handleChange, handleSubmit, values, errors, submitCount }) => (
         <View>
-          {serverError && (
-            <View style={styles.errorBanner}>
-              <Text style={styles.errorBannerText}>{serverError}</Text>
-            </View>
-          )}
           <FormInput
             label={loginStrings.email}
             value={values.email}

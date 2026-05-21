@@ -18,7 +18,6 @@ type VerifyEmailFormProps = {
   onSubmit: (values: VerifyValues) => Promise<void> | void;
   onResend: () => Promise<void> | void;
   onChangeEmail: () => void;
-  serverError?: string | null;
 };
 
 const validate = (values: VerifyValues) => {
@@ -35,7 +34,6 @@ const VerifyEmailForm = ({
   onSubmit,
   onResend,
   onChangeEmail,
-  serverError,
 }: VerifyEmailFormProps) => {
   const [loading, setLoading] = useState(false);
   const [resent, setResent] = useState(false);
@@ -69,12 +67,6 @@ const VerifyEmailForm = ({
       {({ handleChange, handleSubmit, values, errors, submitCount }) => (
         <View>
           <Text style={styles.emailTarget}>{email}</Text>
-
-          {serverError && (
-            <View style={styles.errorBanner}>
-              <Text style={styles.errorBannerText}>{serverError}</Text>
-            </View>
-          )}
 
           <FormInput
             label={verifyStrings.label}
