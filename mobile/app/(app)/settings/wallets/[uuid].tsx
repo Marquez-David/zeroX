@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   ActivityIndicator,
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,6 +15,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { Bitcoin, Check, ChevronLeft, Copy } from 'lucide-react-native';
 
+import { useModal } from '@contexts/modal';
 import PrimaryButton from '@components/CustomButtons/PrimaryButton';
 import {
   useDeleteWalletMutation,
@@ -30,6 +30,7 @@ const WalletDetailScreen = () => {
   const { uuid } = useLocalSearchParams<{ uuid: string }>();
   const { data: wallets = [], isLoading } = useWallets();
   const deleteMutation = useDeleteWalletMutation();
+  const { confirm, toast } = useModal();
   const insets = useSafeAreaInsets();
 
   const normalizedUuid = String(uuid).toLowerCase();
@@ -50,22 +51,23 @@ const WalletDetailScreen = () => {
 
   const handleDelete = () => {
     if (!wallet) return;
-    Alert.alert(
-      walletsSettingsStrings.deleteWalletPrompt,
-      walletsSettingsStrings.deleteWalletBody,
-      [
-        { text: walletsSettingsStrings.cancel, style: 'cancel' },
-        {
-          text: walletsSettingsStrings.confirm,
-          style: 'destructive',
-          onPress: () => {
-            deleteMutation.mutate(wallet.uuid, {
-              onSuccess: () => router.back(),
-            });
+    confirm({
+      title: walletsSettingsStrings.deleteWalletPrompt,
+      body: walletsSettingsStrings.deleteWalletBody,
+      confirmLabel: walletsSettingsStrings.confirm,
+      cancelLabel: walletsSettingsStrings.cancel,
+      variant: 'destructive',
+      onConfirm: () => {
+        toast({ message: 'Removing wallet…', type: 'loading' });
+        deleteMutation.mutate(wallet.uuid, {
+          onSuccess: () => {
+            toast({ message: 'Wallet removed', type: 'success' });
+            router.back();
           },
-        },
-      ],
-    );
+          onError: () => toast({ message: 'Could not remove wallet', type: 'error' }),
+        });
+      },
+    });
   };
 
   return (

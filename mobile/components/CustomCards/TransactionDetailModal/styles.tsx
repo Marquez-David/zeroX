@@ -6,17 +6,9 @@ const BACKDROP_COLOR = 'rgba(0,0,0,0.45)';
 const NOTCH_SIZE = 22;
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: BACKDROP_COLOR,
-  },
-  flex: {
-    flex: 1,
-  },
-  safeArea: {
-    flex: 1,
-    justifyContent: 'center',
-  },
+  root: { flex: 1, backgroundColor: BACKDROP_COLOR },
+  flex: { flex: 1 },
+  safeArea: { flex: 1, justifyContent: 'center' },
   cardShadow: {
     marginHorizontal: spacing.lg,
     borderRadius: radii.xl,
@@ -25,40 +17,47 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.white,
     borderRadius: radii.xl,
-    paddingHorizontal: spacing.lg,
     paddingTop: spacing.xl,
     paddingBottom: spacing.xl,
     overflow: 'hidden',
   },
 
+  // Hero
   hero: {
     alignItems: 'center',
-    gap: spacing.sm,
-    paddingBottom: spacing.xl,
-  },
-  heroIconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: radii.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.xs,
-  },
-  heroConcept: {
-    ...typography.sectionTitle,
-    fontSize: 22,
-    textAlign: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
   },
   heroAmount: {
-    fontSize: 28,
+    fontSize: 32,
     fontFamily: 'Inter-Bold',
-    letterSpacing: -0.5,
+    letterSpacing: -1,
+  },
+  heroConcept: {
+    ...typography.body,
+    fontFamily: 'Inter-SemiBold',
+    color: colors.text.secondary,
+    textAlign: 'center',
+  },
+  typePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: radii.pill,
+    marginTop: spacing.xs,
+  },
+  typePillText: {
+    fontSize: 11,
+    fontFamily: 'Inter-SemiBold',
   },
 
+  // Seam
   seam: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: -spacing.lg,
     paddingVertical: spacing.sm,
     position: 'relative',
   },
@@ -71,12 +70,8 @@ const styles = StyleSheet.create({
     top: '50%',
     marginTop: -NOTCH_SIZE / 2,
   },
-  notchLeft: {
-    left: -NOTCH_SIZE / 2,
-  },
-  notchRight: {
-    right: -NOTCH_SIZE / 2,
-  },
+  notchLeft:  { left: -NOTCH_SIZE / 2 },
+  notchRight: { right: -NOTCH_SIZE / 2 },
   dashed: {
     flex: 1,
     flexDirection: 'row',
@@ -90,32 +85,29 @@ const styles = StyleSheet.create({
     backgroundColor: colors.gray[300],
   },
 
-  details: {
-    paddingTop: spacing.lg,
-    gap: spacing.md,
-  },
+  // Detail rows
+  details: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.md,
-    paddingVertical: spacing.xs,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.gray[100],
+  },
+  detailRowLast: {
+    borderBottomWidth: 0,
   },
   detailLabel: {
-    ...typography.caption,
-    fontFamily: 'Inter-Medium',
+    fontSize: 9,
+    fontFamily: 'Inter-SemiBold',
     color: colors.text.muted,
-    letterSpacing: 1.2,
+    letterSpacing: 1.0,
     textTransform: 'uppercase',
   },
-  detailValueBlock: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    flexShrink: 1,
-  },
   detailValue: {
-    fontSize: 15,
+    fontSize: 12,
     fontFamily: 'Inter-SemiBold',
     color: colors.text.primary,
     flexShrink: 1,
@@ -123,23 +115,32 @@ const styles = StyleSheet.create({
   },
   detailValueMono: {
     fontFamily: 'Inter-Medium',
-    letterSpacing: 1.5,
+    letterSpacing: 1.0,
     color: colors.text.secondary,
+    fontSize: 11,
   },
-  typePill: {
+  detailValueBlock: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flexShrink: 1,
+  },
+  categoryChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    backgroundColor: colors.primary[50],
     paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: radii.pill,
+    paddingVertical: 3,
+    borderRadius: radii.sm,
   },
-  typePillText: {
-    fontSize: 12,
+  categoryChipText: {
+    fontSize: 11,
     fontFamily: 'Inter-SemiBold',
+    color: colors.primary[600],
   },
 
-  // Category picker (nested modal)
+  // Category picker sheet (unchanged behaviour)
   pickerBackdrop: {
     flex: 1,
     backgroundColor: BACKDROP_COLOR,
@@ -166,12 +167,8 @@ const styles = StyleSheet.create({
     ...typography.sectionTitle,
     marginBottom: spacing.md,
   },
-  pickerList: {
-    flexGrow: 0,
-  },
-  pickerListContent: {
-    paddingBottom: spacing.lg,
-  },
+  pickerList: { flexGrow: 0 },
+  pickerListContent: { paddingBottom: spacing.lg },
   pickerOption: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -180,9 +177,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     borderRadius: radii.md,
   },
-  pickerOptionSelected: {
-    backgroundColor: colors.primary[50],
-  },
+  pickerOptionSelected: { backgroundColor: colors.primary[50] },
   pickerIcon: {
     width: 32,
     height: 32,

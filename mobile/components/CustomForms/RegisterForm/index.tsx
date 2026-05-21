@@ -17,7 +17,6 @@ type RegisterValues = {
 
 type RegisterFormProps = {
   onSubmit: (values: RegisterValues) => Promise<void> | void;
-  serverError?: string | null;
 };
 
 const validate = (values: RegisterValues) => {
@@ -40,7 +39,7 @@ const validate = (values: RegisterValues) => {
   return errors;
 };
 
-const RegisterForm = ({ onSubmit, serverError }: RegisterFormProps) => {
+const RegisterForm = ({ onSubmit }: RegisterFormProps) => {
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (values: RegisterValues) => {
@@ -61,11 +60,6 @@ const RegisterForm = ({ onSubmit, serverError }: RegisterFormProps) => {
     >
       {({ handleChange, handleSubmit, values, errors, submitCount }) => (
         <View>
-          {serverError && (
-            <View style={styles.errorBanner}>
-              <Text style={styles.errorBannerText}>{serverError}</Text>
-            </View>
-          )}
           <FormInput
             label={registerStrings.email}
             value={values.email}

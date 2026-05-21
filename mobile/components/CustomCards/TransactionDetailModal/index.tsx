@@ -12,16 +12,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowDownLeft, ArrowUpRight, Check, ChevronRight } from 'lucide-react-native';
 
 import { useOperation } from '@hooks/queries/operations';
-import {
-  categoryColor,
-  categoryIcon,
-  formatCurrency,
-  formatFullDate,
-  shortId,
-} from '@lib/format';
+import { categoryColor, categoryIcon, formatCurrency, formatFullDate, shortId } from '@lib/format';
 import { transactionStrings } from '@lib/strings';
 import { colors } from '@lib/theme';
 import type { Category, Operation, OperationCategory } from '@lib/types';
+import { useModalFade } from '@hooks/useModalFade';
 
 import styles from './styles';
 
@@ -30,10 +25,7 @@ type TransactionDetailModalProps = {
   operation: Operation | null;
   categories: Category[];
   onClose: () => void;
-  onSaveCategory: (
-    operationUuid: string,
-    newCategoryUuid: string,
-  ) => Promise<unknown>;
+  onSaveCategory: (operationUuid: string, newCategoryUuid: string) => Promise<unknown>;
 };
 
 const TransactionDetailModal = ({
@@ -43,36 +35,10 @@ const TransactionDetailModal = ({
   onClose,
   onSaveCategory,
 }: TransactionDetailModalProps) => {
-  // Optimistic pending state so the UI reflects the pick immediately while the
-  // PATCH is in flight. Cleared once the cache refetches and the `operation`
-  // prop catches up, or on request error.
-  const [optimisticCategory, setOptimisticCategory] =
-    useState<OperationCategory | null>(null);
+  const [optimisticCategory, setOptimisticCategory] = useState<OperationCategory | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  // Own the fade so we can control its duration; the built-in Modal fade is
-  // ~200ms and feels sluggish here.
-  const [mounted, setMounted] = useState(visible);
-  const opacity = useRef(new Animated.Value(visible ? 1 : 0)).current;
-
-  useEffect(() => {
-    if (visible) {
-      setMounted(true);
-      Animated.timing(opacity, {
-        toValue: 1,
-        duration: 120,
-        useNativeDriver: true,
-      }).start();
-    } else {
-      Animated.timing(opacity, {
-        toValue: 0,
-        duration: 120,
-        useNativeDriver: true,
-      }).start(({ finished }) => {
-        if (finished) setMounted(false);
-      });
-    }
-  }, [visible, opacity]);
+  const { mounted, opacity } = useModalFade(visible);
 
   useEffect(() => {
     if (!visible) {
@@ -81,23 +47,15 @@ const TransactionDetailModal = ({
     }
   }, [visible]);
 
-  // Refetch the full operation when the modal opens. While the request is in
-  // flight we keep rendering whatever the parent passed in so there's no flash.
   const { data: fetchedOperation } = useOperation(operation?.uuid);
 
   useEffect(() => {
     const current = fetchedOperation ?? operation;
-    if (
-      current &&
-      optimisticCategory &&
-      optimisticCategory.uuid === current.category.uuid
-    ) {
+    if (current && optimisticCategory && optimisticCategory.uuid === current.category.uuid) {
       setOptimisticCategory(null);
     }
   }, [fetchedOperation, operation, optimisticCategory]);
 
-  // Keep the last non-null operation around so the modal still has content to
-  // render during its fade-out animation.
   const lastOperationRef = useRef<Operation | null>(null);
   const currentOperation = fetchedOperation ?? operation;
   if (currentOperation) lastOperationRef.current = currentOperation;
@@ -111,9 +69,7 @@ const TransactionDetailModal = ({
   const amountColor = isIncome ? colors.success[500] : colors.error[500];
   const amountBg = isIncome ? colors.success[50] : colors.error[50];
   const TypeIcon = isIncome ? ArrowUpRight : ArrowDownLeft;
-  const typeLabel = isIncome
-    ? transactionStrings.income
-    : transactionStrings.expense;
+  const typeLabel = isIncome ? transactionStrings.income : transactionStrings.expense;
 
   const handlePickCategory = async (next: Category) => {
     setPickerOpen(false);
@@ -126,6 +82,8 @@ const TransactionDetailModal = ({
     }
   };
 
+  const numDots = 22;
+
   return (
     <Modal
       visible={mounted}
@@ -134,88 +92,69 @@ const TransactionDetailModal = ({
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      <Animated.View
-        style={[styles.root, { opacity }]}
-        pointerEvents='box-none'
-      >
+      <Animated.View style={[styles.root, { opacity }]} pointerEvents='box-none'>
         <Pressable style={styles.flex} onPress={onClose}>
           <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
             <Pressable style={styles.cardShadow} onPress={() => {}}>
               <View style={styles.card}>
+                {/* Hero */}
                 <View style={styles.hero}>
+                  <Text style={[styles.heroAmount, { color: amountColor }]}>
+                    {formatCurrency(display.amount)}
+                  </Text>
                   <Text style={styles.heroConcept} numberOfLines={2}>
                     {display.concept}
                   </Text>
+                  <View style={[styles.typePill, { backgroundColor: amountBg }]}>
+                    <TypeIcon size={11} color={amountColor} strokeWidth={2.5} />
+                    <Text style={[styles.typePillText, { color: amountColor }]}>
+                      {typeLabel}
+                    </Text>
+                  </View>
                 </View>
 
+                {/* Seam */}
                 <View style={styles.seam}>
                   <View style={[styles.notch, styles.notchLeft]} />
                   <View style={styles.dashed}>
-                    {Array.from({ length: 22 }).map((_, i) => (
+                    {Array.from({ length: numDots }).map((_, i) => (
                       <View key={i} style={styles.dashedDot} />
                     ))}
                   </View>
                   <View style={[styles.notch, styles.notchRight]} />
                 </View>
 
+                {/* Detail rows */}
                 <View style={styles.details}>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>
-                      {transactionStrings.type}
-                    </Text>
-                    <View
-                      style={[styles.typePill, { backgroundColor: amountBg }]}
-                    >
-                      <TypeIcon
-                        size={12}
-                        color={amountColor}
-                        strokeWidth={2.5}
-                      />
-                      <Text
-                        style={[styles.typePillText, { color: amountColor }]}
-                      >
-                        {typeLabel}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <DetailRow
-                    label={transactionStrings.concept}
-                    value={display.concept}
-                  />
-
                   <DetailRow
                     label={transactionStrings.date}
                     value={formatFullDate(display.date)}
                   />
-
                   <DetailRow
                     label={transactionStrings.amount}
                     value={formatCurrency(display.amount)}
                     valueColor={amountColor}
                   />
-
+                  {/* Category row — tappable chip */}
                   <TouchableOpacity
                     onPress={() => setPickerOpen(true)}
                     disabled={categories.length === 0}
                     activeOpacity={0.7}
                     style={styles.detailRow}
                   >
-                    <Text style={styles.detailLabel}>
-                      {transactionStrings.category}
-                    </Text>
+                    <Text style={styles.detailLabel}>{transactionStrings.category}</Text>
                     <View style={styles.detailValueBlock}>
-                      <Text style={styles.detailValue} numberOfLines={1}>
-                        {displayCategory.name}
-                      </Text>
-                      <ChevronRight size={16} color={colors.text.muted} />
+                      <View style={styles.categoryChip}>
+                        <Text style={styles.categoryChipText}>{displayCategory.name}</Text>
+                      </View>
+                      <ChevronRight size={14} color={colors.text.muted} />
                     </View>
                   </TouchableOpacity>
-
                   <DetailRow
                     label={transactionStrings.reference}
                     value={shortId(display.uuid)}
                     mono
+                    last
                   />
                 </View>
               </View>
@@ -240,10 +179,11 @@ type DetailRowProps = {
   value: string;
   valueColor?: string;
   mono?: boolean;
+  last?: boolean;
 };
 
-const DetailRow = ({ label, value, valueColor, mono }: DetailRowProps) => (
-  <View style={styles.detailRow}>
+const DetailRow = ({ label, value, valueColor, mono, last }: DetailRowProps) => (
+  <View style={[styles.detailRow, last && styles.detailRowLast]}>
     <Text style={styles.detailLabel}>{label}</Text>
     <Text
       style={[
@@ -283,9 +223,7 @@ const CategoryPickerSheet = ({
     <Pressable style={styles.pickerBackdrop} onPress={onClose}>
       <Pressable style={styles.pickerSheet} onPress={() => {}}>
         <View style={styles.pickerHandle} />
-        <Text style={styles.pickerTitle}>
-          {transactionStrings.pickCategory}
-        </Text>
+        <Text style={styles.pickerTitle}>{transactionStrings.pickCategory}</Text>
         <ScrollView
           style={styles.pickerList}
           contentContainerStyle={styles.pickerListContent}
@@ -300,10 +238,7 @@ const CategoryPickerSheet = ({
                 key={cat.uuid}
                 onPress={() => onPick(cat)}
                 activeOpacity={0.7}
-                style={[
-                  styles.pickerOption,
-                  isSelected && styles.pickerOptionSelected,
-                ]}
+                style={[styles.pickerOption, isSelected && styles.pickerOptionSelected]}
               >
                 <View style={styles.pickerIcon}>
                   <Icon size={18} color={tint} strokeWidth={2.5} />
@@ -317,11 +252,7 @@ const CategoryPickerSheet = ({
                   {cat.name}
                 </Text>
                 {isSelected ? (
-                  <Check
-                    size={18}
-                    color={colors.primary[600]}
-                    strokeWidth={2.5}
-                  />
+                  <Check size={18} color={colors.primary[600]} strokeWidth={2.5} />
                 ) : null}
               </TouchableOpacity>
             );

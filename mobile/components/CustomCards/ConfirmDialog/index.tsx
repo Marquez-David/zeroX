@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
 import {
   Animated,
   Modal,
@@ -8,8 +8,10 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import type { LucideIcon } from 'lucide-react-native';
 
+import { useModalFade } from '@hooks/useModalFade';
 import { colors } from '@lib/theme';
 
 import styles from './styles';
@@ -20,16 +22,11 @@ type ConfirmDialogProps = {
   body?: string;
   confirmLabel: string;
   cancelLabel: string;
-  /** 'destructive' renders the confirm button red; 'primary' uses the brand purple. */
   variant?: 'destructive' | 'primary';
-  /** Optional icon shown in a circle above the title (e.g. `Trash2`). */
   icon?: LucideIcon;
-  loading?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 };
-
-const FADE_MS = 120;
 
 const ConfirmDialog = ({
   visible,
@@ -39,36 +36,17 @@ const ConfirmDialog = ({
   cancelLabel,
   variant = 'destructive',
   icon: Icon,
-  loading = false,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) => {
-  const [mounted, setMounted] = useState(visible);
-  const opacity = useRef(new Animated.Value(visible ? 1 : 0)).current;
-
-  useEffect(() => {
-    if (visible) {
-      setMounted(true);
-      Animated.timing(opacity, {
-        toValue: 1,
-        duration: FADE_MS,
-        useNativeDriver: true,
-      }).start();
-    } else {
-      Animated.timing(opacity, {
-        toValue: 0,
-        duration: FADE_MS,
-        useNativeDriver: true,
-      }).start(({ finished }) => {
-        if (finished) setMounted(false);
-      });
-    }
-  }, [visible, opacity]);
+  const { mounted, opacity } = useModalFade(visible);
 
   if (!mounted) return null;
 
   const isDestructive = variant === 'destructive';
-  const iconColor = isDestructive ? colors.error[500] : colors.primary[600];
+  const gradientColors: [string, string] = isDestructive
+    ? ['#B91C1C', colors.error[500]]
+    : [colors.primary[700], colors.primary[500]];
 
   return (
     <Modal
@@ -79,26 +57,33 @@ const ConfirmDialog = ({
       statusBarTranslucent
     >
       <Animated.View style={[styles.root, { opacity }]}>
-        {/* Backdrop fills the screen and absorbs taps outside the card. */}
-        <Pressable
-          style={StyleSheet.absoluteFill}
-          onPress={loading ? undefined : onCancel}
-        />
-        {/* Card is laid out by the parent's center alignment. */}
+        <Pressable style={StyleSheet.absoluteFill} onPress={onCancel} />
         <View style={styles.cardShadow}>
           <View style={styles.card}>
-            {Icon ? (
-              <View style={styles.iconCircle}>
-                <Icon size={26} color={iconColor} strokeWidth={2.5} />
+            <LinearGradient
+              colors={gradientColors}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.header}
+            >
+              {Icon ? (
+                <View style={styles.iconWrap}>
+                  <Icon size={22} color={colors.white} strokeWidth={2.5} />
+                </View>
+              ) : null}
+              <Text style={styles.headerTitle}>{title}</Text>
+            </LinearGradient>
+
+            {body ? (
+              <View style={styles.bodySection}>
+                <Text style={styles.body}>{body}</Text>
               </View>
             ) : null}
-            <Text style={styles.title}>{title}</Text>
-            {body ? <Text style={styles.body}>{body}</Text> : null}
-            <View style={styles.buttons}>
+
+            <View style={[styles.buttons, !body && styles.buttonsNoBody]}>
               <TouchableOpacity
                 style={[styles.button, styles.cancelButton]}
                 onPress={onCancel}
-                disabled={loading}
                 activeOpacity={0.7}
               >
                 <Text style={styles.cancelLabel}>{cancelLabel}</Text>
@@ -106,22 +91,12 @@ const ConfirmDialog = ({
               <TouchableOpacity
                 style={[
                   styles.button,
-                  isDestructive
-                    ? styles.destructiveButton
-                    : styles.primaryButton,
-                  loading && styles.buttonDisabled,
+                  isDestructive ? styles.destructiveButton : styles.primaryButton,
                 ]}
                 onPress={onConfirm}
-                disabled={loading}
                 activeOpacity={0.7}
               >
-                <Text
-                  style={
-                    isDestructive
-                      ? styles.destructiveLabel
-                      : styles.primaryLabel
-                  }
-                >
+                <Text style={isDestructive ? styles.destructiveLabel : styles.primaryLabel}>
                   {confirmLabel}
                 </Text>
               </TouchableOpacity>
