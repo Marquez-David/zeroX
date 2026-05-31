@@ -9,6 +9,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { SessionProvider, useSession } from '@contexts/auth';
 import { ModalProvider } from '@contexts/modal';
 import { queryClient } from '@lib/queryClient';
+import AnimatedSplash from '@components/CustomSplash/AnimatedSplash';
 
 import { Stack } from 'expo-router';
 
@@ -21,6 +22,10 @@ const RootLayout = () => {
     'Inter-Medium': require('@assets/fonts/Inter-Medium.otf'),
     'Inter-Bold': require('@assets/fonts/Inter-Bold.otf'),
   });
+
+  useEffect(() => {
+    if (loaded || error) SplashScreen.hideAsync();
+  }, [loaded, error]);
 
   if (!loaded && !error) {
     return null;
@@ -45,11 +50,7 @@ const RootLayout = () => {
 function RootNavigator() {
   const { session, isLoading } = useSession();
 
-  useEffect(() => {
-    if (!isLoading) SplashScreen.hideAsync();
-  }, [isLoading]);
-
-  if (isLoading) return null;
+  if (isLoading) return <AnimatedSplash loop />;
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
