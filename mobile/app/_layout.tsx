@@ -13,23 +13,32 @@ import AnimatedSplash from '@components/CustomSplash/AnimatedSplash';
 
 import { Stack } from 'expo-router';
 
+console.log('[diag] _layout.tsx module evaluated');
 SplashScreen.preventAutoHideAsync();
 
 const RootLayout = () => {
+  console.log('[diag] RootLayout render start');
   const [loaded, error] = useFonts({
     'Inter-SemiBold': require('@assets/fonts/Inter-SemiBold.otf'),
     'Inter-Regular': require('@assets/fonts/Inter-Regular.otf'),
     'Inter-Medium': require('@assets/fonts/Inter-Medium.otf'),
     'Inter-Bold': require('@assets/fonts/Inter-Bold.otf'),
   });
+  console.log('[diag] useFonts returned', { loaded, error: !!error });
 
   useEffect(() => {
-    if (loaded || error) SplashScreen.hideAsync();
+    console.log('[diag] RootLayout useEffect fired', { loaded, error: !!error });
+    if (loaded || error) {
+      console.log('[diag] calling hideAsync');
+      SplashScreen.hideAsync();
+    }
   }, [loaded, error]);
 
   if (!loaded && !error) {
+    console.log('[diag] returning null (fonts not ready)');
     return null;
   }
+  console.log('[diag] rendering providers');
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -48,10 +57,16 @@ const RootLayout = () => {
 };
 
 function RootNavigator() {
+  console.log('[diag] RootNavigator render start');
   const { session, isLoading } = useSession();
+  console.log('[diag] useSession returned', { session, isLoading });
 
-  if (isLoading) return <AnimatedSplash loop />;
+  if (isLoading) {
+    console.log('[diag] showing AnimatedSplash');
+    return <AnimatedSplash loop />;
+  }
 
+  console.log('[diag] rendering Stack', { hasSession: !!session });
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={!!session}>
