@@ -1,6 +1,7 @@
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -13,32 +14,23 @@ import AnimatedSplash from '@components/CustomSplash/AnimatedSplash';
 
 import { Stack } from 'expo-router';
 
-console.log('[diag] _layout.tsx module evaluated');
+console.log('[diag] 1: _layout.tsx module evaluated');
 SplashScreen.preventAutoHideAsync();
 
 const RootLayout = () => {
-  console.log('[diag] RootLayout render start');
+  console.log('[diag] 2: RootLayout render start');
   const [loaded, error] = useFonts({
     'Inter-SemiBold': require('@assets/fonts/Inter-SemiBold.otf'),
     'Inter-Regular': require('@assets/fonts/Inter-Regular.otf'),
     'Inter-Medium': require('@assets/fonts/Inter-Medium.otf'),
     'Inter-Bold': require('@assets/fonts/Inter-Bold.otf'),
   });
-  console.log('[diag] useFonts returned', { loaded, error: !!error });
 
   useEffect(() => {
-    console.log('[diag] RootLayout useEffect fired', { loaded, error: !!error });
-    if (loaded || error) {
-      console.log('[diag] calling hideAsync');
-      SplashScreen.hideAsync();
-    }
+    if (loaded || error) SplashScreen.hideAsync();
   }, [loaded, error]);
 
-  if (!loaded && !error) {
-    console.log('[diag] returning null (fonts not ready)');
-    return null;
-  }
-  console.log('[diag] rendering providers');
+  if (!loaded && !error) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -47,7 +39,9 @@ const RootLayout = () => {
           <SessionProvider>
             <ModalProvider>
               <StatusBar style='dark' />
-              <RootNavigator />
+              <View style={{ flex: 1 }}>
+                <RootNavigator />
+              </View>
             </ModalProvider>
           </SessionProvider>
         </SafeAreaProvider>
@@ -57,26 +51,21 @@ const RootLayout = () => {
 };
 
 function RootNavigator() {
-  console.log('[diag] RootNavigator render start');
   const { session, isLoading } = useSession();
-  console.log('[diag] useSession returned', { session, isLoading });
 
-  if (isLoading) {
-    console.log('[diag] showing AnimatedSplash');
-    return <AnimatedSplash loop />;
-  }
-
-  console.log('[diag] rendering Stack', { hasSession: !!session });
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Protected guard={!!session}>
-        <Stack.Screen name='(app)' />
-      </Stack.Protected>
-
-      <Stack.Protected guard={!session}>
-        <Stack.Screen name='login' />
-      </Stack.Protected>
-    </Stack>
+    <View style={{ flex: 1 }}>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name='index' />
+        <Stack.Protected guard={!isLoading && !!session}>
+          <Stack.Screen name='(app)' />
+        </Stack.Protected>
+        <Stack.Protected guard={!isLoading && !session}>
+          <Stack.Screen name='login' />
+        </Stack.Protected>
+      </Stack>
+      {isLoading && <AnimatedSplash loop />}
+    </View>
   );
 }
 
