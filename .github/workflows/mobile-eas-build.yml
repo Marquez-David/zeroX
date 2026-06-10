@@ -1,0 +1,43 @@
+name: Mobile EAS Build (Android preview)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'mobile/**'
+      - '!mobile/**.md'
+      - '.github/workflows/mobile-eas-build.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: mobile-eas-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Android APK (preview)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        working-directory: mobile
+        run: npm ci
+
+      - name: Trigger EAS build
+        working-directory: mobile
+        run: eas build --platform android --profile preview --non-interactive --no-wait

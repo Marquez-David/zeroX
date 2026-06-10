@@ -1,25 +1,28 @@
 {
   "expo": {
-    "name": "mobile",
+    "name": "zeroX",
     "slug": "mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "mobile",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "icon": "./assets/images/icon.png",
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#6D28D9"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.anonymous.mobile"
     },
     "web": {
       "bundler": "metro",
-      "output": "static"
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
       "expo-router",
@@ -27,23 +30,31 @@
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
+          "imageWidth": 220,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#6D28D9"
         }
       ],
+      "expo-secure-store",
       [
-        "expo-font",
+        "expo-build-properties",
         {
-          "fonts": [
-            "node_modules/@expo-google-fonts/inter/Inter_900Black.ttf"
-          ]
+          "android": {
+            "usesCleartextTraffic": true
+          }
         }
-      ],
-      "expo-secure-store"
+      ]
     ],
     "experiments": {
-      "typedRoutes": true
+      "typedRoutes": false
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "4a98dac6-1d73-4224-85bf-e7dfa9b53ed9"
+      }
     }
   }
 }
