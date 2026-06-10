@@ -8,6 +8,7 @@ _INTER_ACCOUNT_KEYWORDS = (
     "autotraspaso",
     "autotransferencia",
     "paypal europe",
+    "tranfer inmediata",
 )
 
 
