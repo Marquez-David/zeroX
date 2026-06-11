@@ -5,9 +5,11 @@ import {
   Coins,
   Dumbbell,
   Film,
+  Gift,
   GraduationCap,
   HeartPulse,
   Landmark,
+  MonitorSmartphone,
   Package,
   Plane,
   Plug,
@@ -131,6 +133,8 @@ const CATEGORY_COLOR_MAP: Record<string, string> = {
   moto: '#D97706',
   suscripciones: '#7C3AED',
   deporte: '#16A34A',
+  tecnologia: '#4F46E5',
+  'regalos y detalles': '#DB2777',
 };
 
 export function categoryColor(name: string | undefined | null): string {
@@ -173,6 +177,8 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   moto: Bike,
   suscripciones: Repeat,
   deporte: Dumbbell,
+  tecnologia: MonitorSmartphone,
+  'regalos y detalles': Gift,
 };
 
 export function categoryIcon(name: string | undefined | null): LucideIcon {
