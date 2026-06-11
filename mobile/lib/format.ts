@@ -2,6 +2,7 @@ import {
   ArrowLeftRight,
   Bike,
   Car,
+  Clover,
   Coins,
   Dumbbell,
   Film,
@@ -21,6 +22,7 @@ import {
   Sofa,
   Tag,
   UtensilsCrossed,
+  Wine,
   type LucideIcon,
 } from 'lucide-react-native';
 
@@ -135,6 +137,8 @@ const CATEGORY_COLOR_MAP: Record<string, string> = {
   deporte: '#16A34A',
   tecnologia: '#4F46E5',
   'regalos y detalles': '#DB2777',
+  vicios: '#9F1239',
+  loteria: '#CA8A04',
 };
 
 export function categoryColor(name: string | undefined | null): string {
@@ -179,6 +183,8 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   deporte: Dumbbell,
   tecnologia: MonitorSmartphone,
   'regalos y detalles': Gift,
+  vicios: Wine,
+  loteria: Clover,
 };
 
 export function categoryIcon(name: string | undefined | null): LucideIcon {
