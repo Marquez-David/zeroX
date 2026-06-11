@@ -12,7 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowDownLeft, ArrowUpRight, Check, ChevronRight } from 'lucide-react-native';
 
 import { useOperation } from '@hooks/queries/operations';
-import { categoryColor, categoryIcon, formatCurrency, formatFullDate, shortId } from '@lib/format';
+import { categoryColor, categoryIcon, formatCurrency, formatFullDate, shortId, withOpacity } from '@lib/format';
 import { transactionStrings } from '@lib/strings';
 import { colors } from '@lib/theme';
 import type { Category, Operation, OperationCategory } from '@lib/types';
@@ -70,6 +70,8 @@ const TransactionDetailModal = ({
   const amountBg = isIncome ? colors.success[50] : colors.error[50];
   const TypeIcon = isIncome ? ArrowUpRight : ArrowDownLeft;
   const typeLabel = isIncome ? transactionStrings.income : transactionStrings.expense;
+  const categoryTint = categoryColor(displayCategory.name);
+  const CategoryIcon = categoryIcon(displayCategory.name);
 
   const handlePickCategory = async (next: Category) => {
     setPickerOpen(false);
@@ -105,12 +107,6 @@ const TransactionDetailModal = ({
                   <Text style={styles.heroConcept} numberOfLines={2}>
                     {display.concept}
                   </Text>
-                  <View style={[styles.typePill, { backgroundColor: amountBg }]}>
-                    <TypeIcon size={11} color={amountColor} strokeWidth={2.5} />
-                    <Text style={[styles.typePillText, { color: amountColor }]}>
-                      {typeLabel}
-                    </Text>
-                  </View>
                 </View>
 
                 {/* Seam */}
@@ -126,6 +122,20 @@ const TransactionDetailModal = ({
 
                 {/* Detail rows */}
                 <View style={styles.details}>
+                  {/* Type row — income/expense pill */}
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>{transactionStrings.type}</Text>
+                    <View style={[styles.typePill, { backgroundColor: amountBg }]}>
+                      <TypeIcon size={11} color={amountColor} strokeWidth={2.5} />
+                      <Text style={[styles.typePillText, { color: amountColor }]}>
+                        {typeLabel}
+                      </Text>
+                    </View>
+                  </View>
+                  <DetailRow
+                    label={transactionStrings.concept}
+                    value={display.concept}
+                  />
                   <DetailRow
                     label={transactionStrings.date}
                     value={formatFullDate(display.date)}
@@ -144,8 +154,16 @@ const TransactionDetailModal = ({
                   >
                     <Text style={styles.detailLabel}>{transactionStrings.category}</Text>
                     <View style={styles.detailValueBlock}>
-                      <View style={styles.categoryChip}>
-                        <Text style={styles.categoryChipText}>{displayCategory.name}</Text>
+                      <View
+                        style={[
+                          styles.categoryChip,
+                          { backgroundColor: withOpacity(categoryTint, 0.12) },
+                        ]}
+                      >
+                        <CategoryIcon size={12} color={categoryTint} strokeWidth={2.5} />
+                        <Text style={[styles.categoryChipText, { color: categoryTint }]}>
+                          {displayCategory.name}
+                        </Text>
                       </View>
                       <ChevronRight size={14} color={colors.text.muted} />
                     </View>
